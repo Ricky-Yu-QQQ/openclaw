@@ -16,7 +16,6 @@ import {
   sendImageMessage,
   sendFileMessage,
   sendCardMessage,
-  downloadImageByKey,
   downloadMessageImage,
   downloadMessageFile,
   sendSmartMessage,
@@ -142,7 +141,6 @@ import {
   prependDocumentBlocks,
   appendText,
   appendMarkdown,
-  appendDocumentBlocks,
 } from "./document.js";
 import {
   createFolder,
@@ -166,10 +164,8 @@ import {
   listBitableFields,
   createBitableField,
   listBitableRecords,
-  searchBitableRecords,
   getBitableRecord,
   createBitableRecord,
-  createBitableRecords,
   updateBitableRecord,
   deleteBitableRecord,
   deleteBitableRecords,
@@ -397,8 +393,7 @@ async function guardLocalFileAccess(opts: {
   if (!pathCheck.ok) return pathCheck;
 
   const requireApproval =
-    (feishuCfg?.fileAccess?.requireApproval ?? true) &&
-    (feishuCfg?.adminIds?.length || 0) > 0;
+    (feishuCfg?.fileAccess?.requireApproval ?? true) && (feishuCfg?.adminIds?.length || 0) > 0;
   if (!requireApproval) {
     return { ok: true };
   }
@@ -2756,22 +2751,14 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
 
             if (approvalCmd.action === "deny") {
               pendingFileApprovals.delete(approvalCmd.id);
-              await sendTextMessage(
-                account,
-                message.chatId,
-                `✅ 已拒绝审批: ${approvalCmd.id}`
-              );
+              await sendTextMessage(account, message.chatId, `✅ 已拒绝审批: ${approvalCmd.id}`);
               return;
             }
 
             pendingFileApprovals.delete(approvalCmd.id);
             const ttl = feishuCfg?.fileAccess?.approvalTimeoutMs ?? FILE_APPROVAL_DEFAULT_TTL_MS;
             approvedFileApprovals.set(approvalCmd.id, now + ttl);
-            await sendTextMessage(
-              account,
-              message.chatId,
-              `✅ 已批准审批: ${approvalCmd.id}`
-            );
+            await sendTextMessage(account, message.chatId, `✅ 已批准审批: ${approvalCmd.id}`);
             return;
           }
 

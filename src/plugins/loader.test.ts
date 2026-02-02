@@ -97,6 +97,21 @@ describe("loadOpenClawPlugins", () => {
     expect(enabled?.status).toBe("loaded");
   });
 
+  it("loads bundled feishu plugin by default", () => {
+    const bundledDir = makeTempDir();
+    writePlugin({
+      id: "feishu",
+      body: `export default { id: "feishu", register() {} };`,
+      dir: bundledDir,
+      filename: "feishu.ts",
+    });
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = bundledDir;
+
+    const registry = loadOpenClawPlugins({ cache: false });
+    const feishu = registry.plugins.find((entry) => entry.id === "feishu");
+    expect(feishu?.status).toBe("loaded");
+  });
+
   it("loads bundled telegram plugin when enabled", () => {
     const bundledDir = makeTempDir();
     writePlugin({

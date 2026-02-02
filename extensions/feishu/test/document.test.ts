@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { mockAccount, createMockClient, createMockResponse } from "./setup.js";
+import { mockAccount, createMockClient } from "./setup.js";
 
 // Mock client module
 const mockClient = createMockClient();
@@ -16,9 +16,7 @@ import {
   getDocument,
   getDocumentContent,
   getDocumentBlocks,
-  getDocumentStructure,
   getBlock,
-  updateBlock,
   deleteBlock,
   appendDocumentBlocks,
   appendText,

@@ -22,7 +22,6 @@ import {
   getSpreadsheet,
   listSheets,
   getSheet,
-  readRange,
   writeRange,
   appendRows,
   insertRows,

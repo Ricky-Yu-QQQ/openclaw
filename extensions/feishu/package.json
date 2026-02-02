@@ -17,7 +17,15 @@
   "openclaw": {
     "extensions": [
       "./index.ts"
-    ]
+    ],
+    "channel": {
+      "id": "feishu",
+      "label": "Feishu",
+      "selectionLabel": "飞书 (消息/文档/云空间)",
+      "docsPath": "https://github.com/Ricky-Yu-QQQ/openclaw",
+      "blurb": "飞书通道插件 - 支持消息、云文档、云空间操作",
+      "order": 75
+    }
   },
   "clawdbot": {
     "extensions": [

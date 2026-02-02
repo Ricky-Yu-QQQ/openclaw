@@ -15,7 +15,7 @@
  */
 
 import { Type, type TSchema } from "@sinclair/typebox";
-import type { ResolvedFeishuAccount, FeishuChannelConfig } from "./types.js";
+import type { ResolvedFeishuAccount } from "./types.js";
 
 // ========== Action 定义 ==========
 
