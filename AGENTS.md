@@ -79,6 +79,111 @@
 - Pure test additions/fixes generally do **not** need a changelog entry unless they alter user-facing behavior or the user asks for one.
 - Mobile: before using a simulator, check for connected real devices (iOS + Android) and prefer them when available.
 
+## Feature Implementation Workflow
+
+1. Plan First
+   - Create detailed implementation plan
+   - Identify dependencies and risks
+   - Break down into phases
+2. TDD Approach
+   - Write tests first (RED)
+   - Implement to pass tests (GREEN)
+   - Refactor (IMPROVE)
+   - Verify 80%+ coverage
+3. Code Review
+   - Use `code-review-checklist` skill
+   - Address CRITICAL and HIGH issues
+   - Fix MEDIUM issues when possible
+4. Commit & Push
+   - Detailed commit messages
+   - Follow conventional commits format
+
+## Model Selection
+
+gpt-5.2 (Primary model for all tasks):
+- Main development work
+- Code generation and pair programming
+- Complex coding tasks
+- Architectural decisions
+- Research and analysis tasks
+Note: Codex CLI uses gpt-5.2 as the unified model for all operations.
+
+## Context Window Management
+
+Avoid last 20% of context window for:
+- Large-scale refactoring
+- Feature implementation spanning multiple files
+- Debugging complex interactions
+Lower context sensitivity tasks:
+- Single-file edits
+- Independent utility creation
+- Documentation updates
+- Simple bug fixes
+
+## Deep Reasoning
+
+For complex tasks:
+1. Use detailed planning before implementation
+2. Break down complex problems into smaller steps
+3. Verify assumptions before proceeding
+4. Test thoroughly after implementation
+
+## Build Troubleshooting
+
+If build fails:
+1. Analyze error messages carefully
+2. Fix incrementally
+3. Verify after each fix
+4. Run full test suite before marking complete
+
+## Multi-agents (Experimental)
+
+This project supports Codex multi-agents for parallel task execution:
+
+```ts
+// Example: Parallel code review
+const security = spawn_agent("Security review of auth.ts", "worker")
+const performance = spawn_agent("Performance review of queries.ts", "worker")
+
+wait([security.agent_id, performance.agent_id])
+
+close_agent(security.agent_id)
+close_agent(performance.agent_id)
+```
+
+Enable in `~/.codex/config.toml`:
+
+```
+[features]
+collab = true
+```
+
+## Testing Requirements
+
+- Minimum 80% test coverage
+- Unit tests for all functions
+- Integration tests for APIs
+- E2E tests for critical flows
+Use `tdd-workflow` skill for TDD guidance.
+
+## Security
+
+Use `security-checklist` skill before commits:
+- No hardcoded secrets
+- Input validation on all endpoints
+- SQL queries parameterized
+- Output escaped (XSS prevention)
+- `npm audit` clean
+
+## Code Quality
+
+Use `code-review-checklist` skill after writing code:
+- Functions < 50 lines
+- Files < 800 lines
+- No deep nesting (< 4 levels)
+- Immutability patterns
+- Proper error handling
+
 ## Commit & Pull Request Guidelines
 
 - Create commits with `scripts/committer "<msg>" <file...>`; avoid manual `git add`/`git commit` so staging stays scoped.
