@@ -15,6 +15,8 @@ import {
 const mockClient = createMockClient();
 vi.mock("../src/client.js", () => ({
   getFeishuClient: () => mockClient,
+  feishuFetch: (account: unknown, url: string, options?: RequestInit) =>
+    globalThis.fetch(url, options),
 }));
 
 import {

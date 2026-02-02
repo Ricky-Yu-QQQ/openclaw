@@ -6,15 +6,161 @@ import * as lark from "@larksuiteoapi/node-sdk";
 import * as fs from "fs";
 import * as path from "path";
 import type { ResolvedFeishuAccount, ApiResult } from "./types.js";
+import type { RuntimeLogger } from "./compat.js";
+import { getFeishuRuntime } from "./runtime.js";
 
 // 客户端缓存
 const clientCache = new Map<string, lark.Client>();
+const proxiedClientCache = new Map<string, lark.Client>();
+
+const REDACT_KEYS = new Set([
+  "appSecret",
+  "app_secret",
+  "access_token",
+  "tenant_access_token",
+  "Authorization",
+  "authorization",
+  "token",
+  "password",
+  "secret",
+]);
+
+const MAX_LOG_STRING = 400;
+
+function sanitizeValue(value: unknown, depth = 2): unknown {
+  if (depth <= 0) return "[depth]";
+  if (value === null || value === undefined) return value;
+  if (typeof value === "string") {
+    return value.length > MAX_LOG_STRING ? `${value.slice(0, MAX_LOG_STRING)}…` : value;
+  }
+  if (typeof value === "number" || typeof value === "boolean") return value;
+  if (typeof value === "bigint") return value.toString();
+  if (typeof value === "function") return "[function]";
+  if (typeof value === "symbol") return value.toString();
+  if (typeof Blob !== "undefined" && value instanceof Blob) {
+    return `[Blob size=${value.size} type=${value.type || "unknown"}]`;
+  }
+  if (value instanceof Buffer) {
+    return `[Buffer length=${value.length}]`;
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeValue(entry, depth - 1));
+  }
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(obj)) {
+      if (REDACT_KEYS.has(key)) {
+        out[key] = "[redacted]";
+      } else {
+        out[key] = sanitizeValue(entry, depth - 1);
+      }
+    }
+    return out;
+  }
+  return "[unknown]";
+}
+
+function getFeishuLogger(account: ResolvedFeishuAccount): RuntimeLogger {
+  try {
+    const runtime = getFeishuRuntime();
+    return runtime.logging.getChildLogger({
+      scope: "feishu",
+      accountId: account.accountId,
+    });
+  } catch {
+    return {
+      info: (message) => console.info(message),
+      warn: (message) => console.warn(message),
+      error: (message) => console.error(message),
+    };
+  }
+}
+
+function logApiCall(
+  logger: RuntimeLogger,
+  path: string,
+  args: unknown[],
+  result?: unknown,
+  error?: unknown
+): void {
+  const argsPayload = sanitizeValue(args, 2);
+  if (error) {
+    logger.error(
+      `[feishu api] ${path} failed: ${String(error)} | args=${JSON.stringify(argsPayload)}`
+    );
+    return;
+  }
+  if (result && typeof result === "object" && "code" in (result as Record<string, unknown>)) {
+    const code = (result as Record<string, unknown>).code;
+    const msg = (result as Record<string, unknown>).msg;
+    logger.info(
+      `[feishu api] ${path} -> code=${String(code)}${msg ? ` msg=${String(msg)}` : ""} | args=${JSON.stringify(argsPayload)}`
+    );
+    return;
+  }
+  logger.info(`[feishu api] ${path} ok | args=${JSON.stringify(argsPayload)}`);
+}
+
+function createLoggingProxy<T extends object>(
+  target: T,
+  basePath: string,
+  logger: RuntimeLogger,
+  cache: WeakMap<object, object>
+): T {
+  if (cache.has(target)) {
+    return cache.get(target) as T;
+  }
+  const proxy = new Proxy(target, {
+    get(obj, prop, receiver) {
+      if (typeof prop === "symbol") {
+        return Reflect.get(obj, prop, receiver);
+      }
+      const value = Reflect.get(obj, prop, receiver) as unknown;
+      const path = basePath ? `${basePath}.${String(prop)}` : String(prop);
+      if (typeof value === "function") {
+        return (...args: unknown[]) => {
+          try {
+            const result = (value as (...inner: unknown[]) => unknown).apply(obj, args);
+            if (result && typeof (result as Promise<unknown>).then === "function") {
+              return (result as Promise<unknown>)
+                .then((resolved) => {
+                  logApiCall(logger, path, args, resolved);
+                  return resolved;
+                })
+                .catch((err) => {
+                  logApiCall(logger, path, args, undefined, err);
+                  throw err;
+                });
+            }
+            logApiCall(logger, path, args, result);
+            return result;
+          } catch (err) {
+            logApiCall(logger, path, args, undefined, err);
+            throw err;
+          }
+        };
+      }
+      if (value && typeof value === "object") {
+        return createLoggingProxy(value as object, path, logger, cache);
+      }
+      return value;
+    },
+  });
+  cache.set(target, proxy as object);
+  return proxy as T;
+}
 
 /**
  * 获取或创建飞书客户端
  */
 export function getFeishuClient(account: ResolvedFeishuAccount): lark.Client {
   const cacheKey = account.appId;
+
+  const existingProxy = proxiedClientCache.get(cacheKey);
+  if (existingProxy) {
+    return existingProxy;
+  }
 
   let client = clientCache.get(cacheKey);
   if (!client) {
@@ -24,8 +170,34 @@ export function getFeishuClient(account: ResolvedFeishuAccount): lark.Client {
     });
     clientCache.set(cacheKey, client);
   }
+  const logger = getFeishuLogger(account);
+  const proxyCache = new WeakMap<object, object>();
+  const proxied = createLoggingProxy(client as unknown as object, "client", logger, proxyCache);
+  proxiedClientCache.set(cacheKey, proxied as lark.Client);
+  return proxied as lark.Client;
+}
 
-  return client;
+export async function feishuFetch(
+  account: ResolvedFeishuAccount,
+  url: string,
+  options?: RequestInit
+): Promise<Response> {
+  const logger = getFeishuLogger(account);
+  const method = options?.method ?? "GET";
+  const headers = options?.headers ? sanitizeValue(options.headers, 2) : undefined;
+  logger.info(
+    `[feishu api] fetch ${method} ${url}${headers ? ` | headers=${JSON.stringify(headers)}` : ""}`
+  );
+  try {
+    const response = await globalThis.fetch(url, options);
+    logger.info(
+      `[feishu api] fetch ${method} ${url} -> status=${response.status} ${response.statusText}`
+    );
+    return response;
+  } catch (error) {
+    logger.error(`[feishu api] fetch ${method} ${url} failed: ${String(error)}`);
+    throw error;
+  }
 }
 
 // ==================== 消息 API ====================

@@ -128,6 +128,7 @@ export function createMockClient() {
 export function setupFetchMock() {
   const mockFetch = vi.fn();
   global.fetch = mockFetch as any;
+  globalThis.fetch = mockFetch as any;
   return mockFetch;
 }
 

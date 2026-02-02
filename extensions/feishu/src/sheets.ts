@@ -9,7 +9,7 @@
  */
 
 import type { ResolvedFeishuAccount, ApiResult } from "./types.js";
-import { getFeishuClient } from "./client.js";
+import { feishuFetch, getFeishuClient } from "./client.js";
 
 // ==================== 类型定义 ====================
 
@@ -187,7 +187,8 @@ export async function readRange(
 ): Promise<ApiResult<RangeData>> {
   try {
     // 使用 v2 API 读取值
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/values/${encodeURIComponent(range)}`,
       {
         headers: {
@@ -224,7 +225,8 @@ export async function writeRange(
   values: CellValue[][]
 ): Promise<ApiResult<{ updatedCells: number }>> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/values`,
       {
         method: "PUT",
@@ -266,7 +268,8 @@ export async function appendRows(
   values: CellValue[][]
 ): Promise<ApiResult<{ updatedCells: number; updatedRows: number }>> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/values_append`,
       {
         method: "POST",
@@ -309,7 +312,8 @@ export async function batchReadRanges(
 ): Promise<ApiResult<RangeData[]>> {
   try {
     const rangesParam = ranges.map((r) => encodeURIComponent(r)).join(",");
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/values_batch_get?ranges=${rangesParam}`,
       {
         headers: {
@@ -341,7 +345,8 @@ export async function batchWriteRanges(
   data: RangeData[]
 ): Promise<ApiResult<{ totalUpdatedCells: number }>> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/values_batch_update`,
       {
         method: "POST",
@@ -384,7 +389,8 @@ export async function insertRows(
   count: number
 ): Promise<ApiResult> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/insert_dimension_range`,
       {
         method: "POST",
@@ -425,7 +431,8 @@ export async function deleteRows(
   count: number
 ): Promise<ApiResult> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/dimension_range`,
       {
         method: "DELETE",
@@ -465,7 +472,8 @@ export async function insertColumns(
   count: number
 ): Promise<ApiResult> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/insert_dimension_range`,
       {
         method: "POST",
@@ -506,7 +514,8 @@ export async function deleteColumns(
   count: number
 ): Promise<ApiResult> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/dimension_range`,
       {
         method: "DELETE",
@@ -541,7 +550,8 @@ export async function deleteColumns(
  * 获取访问令牌
  */
 async function getAccessToken(account: ResolvedFeishuAccount): Promise<string> {
-  const response = await fetch(
+  const response = await feishuFetch(
+    account,
     "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
     {
       method: "POST",
@@ -621,7 +631,8 @@ export async function setCellStyle(
       styleObj.textOverflow = style.wrapText ? 1 : 0;
     }
 
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/style`,
       {
         method: "PUT",
@@ -676,7 +687,8 @@ export async function batchSetCellStyle(
       return { range, style: styleObj };
     });
 
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/styles_batch_update`,
       {
         method: "PUT",
@@ -708,7 +720,8 @@ export async function mergeCells(
   mergeType: "MERGE_ALL" | "MERGE_ROWS" | "MERGE_COLUMNS" = "MERGE_ALL"
 ): Promise<ApiResult> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/merge_cells`,
       {
         method: "POST",
@@ -742,7 +755,8 @@ export async function unmergeCells(
   range: string
 ): Promise<ApiResult> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/unmerge_cells`,
       {
         method: "POST",
@@ -815,7 +829,8 @@ export async function setDataValidation(
       rule.inputMessage = options.inputMessage;
     }
 
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/dataValidation`,
       {
         method: "POST",
@@ -891,7 +906,8 @@ export async function setConditionalFormat(
       if (options.style.bold) rule.style.font = { ...rule.style.font, bold: true };
     }
 
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/condition_formats`,
       {
         method: "POST",
@@ -926,7 +942,8 @@ export async function createFilter(
   range: string
 ): Promise<ApiResult> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/filters`,
       {
         method: "POST",
@@ -960,7 +977,8 @@ export async function deleteFilter(
   sheetId: string
 ): Promise<ApiResult> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/filters?sheetId=${sheetId}`,
       {
         method: "DELETE",
@@ -1011,7 +1029,8 @@ export async function setFilterCondition(
       filterCondition.expected = [String(condition.value)];
     }
 
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/filters/${sheetId}/condition`,
       {
         method: "PUT",
@@ -1052,7 +1071,8 @@ export async function sortRange(
   }>
 ): Promise<ApiResult> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/sort`,
       {
         method: "POST",
@@ -1092,7 +1112,8 @@ export async function freezeRowsAndColumns(
   frozenColumns: number
 ): Promise<ApiResult> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/sheets/${sheetId}/frozen`,
       {
         method: "PUT",
@@ -1136,7 +1157,8 @@ export async function findReplace(
   }
 ): Promise<ApiResult<{ replacedCount: number }>> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/find_replace`,
       {
         method: "POST",
@@ -1180,7 +1202,8 @@ export async function setColumnWidth(
   width: number
 ): Promise<ApiResult> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/dimension_range`,
       {
         method: "PUT",
@@ -1224,7 +1247,8 @@ export async function setRowHeight(
   height: number
 ): Promise<ApiResult> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/dimension_range`,
       {
         method: "PUT",
@@ -1266,7 +1290,8 @@ export async function copySheet(
   targetTitle?: string
 ): Promise<ApiResult<{ sheetId: string }>> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/sheets/${sourceSheetId}/copy`,
       {
         method: "POST",
@@ -1303,7 +1328,8 @@ export async function addSheet(
   index?: number
 ): Promise<ApiResult<Sheet>> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/sheets_batch_update`,
       {
         method: "POST",
@@ -1355,7 +1381,8 @@ export async function deleteSheet(
   sheetId: string
 ): Promise<ApiResult> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/sheets_batch_update`,
       {
         method: "POST",
@@ -1400,7 +1427,8 @@ export async function protectSheet(
   }
 ): Promise<ApiResult> {
   try {
-    const response = await fetch(
+    const response = await feishuFetch(
+      account,
       `https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/protected_dimension`,
       {
         method: "POST",

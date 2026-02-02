@@ -14,6 +14,7 @@ vi.mock("@larksuiteoapi/node-sdk", () => ({
 }));
 
 import {
+  feishuFetch,
   getFeishuClient,
   sendTextMessage,
   sendPostMessage,
@@ -307,6 +308,25 @@ describe("消息客户端 API", () => {
       const result = await getMessage(mockAccount, "msg_not_exist");
 
       expect(result.ok).toBe(false);
+    });
+  });
+
+  describe("feishuFetch", () => {
+    it("应该调用 fetch 并返回响应", async () => {
+      const mockResponse = { ok: true, status: 200, statusText: "OK" } as Response;
+      const fetchMock = vi.fn().mockResolvedValueOnce(mockResponse);
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+      try {
+        const result = await feishuFetch(mockAccount, "https://open.feishu.cn/test", {
+          method: "POST",
+        });
+        expect(result).toBe(mockResponse);
+        expect(fetchMock).toHaveBeenCalledWith("https://open.feishu.cn/test", { method: "POST" });
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
     });
   });
 });
