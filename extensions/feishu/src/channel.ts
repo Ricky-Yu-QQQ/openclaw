@@ -605,22 +605,34 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
   listActions: () => [
     // 消息
     { action: "send", description: "发送消息", params: ["target", "message"] },
-    { action: "send_card", description: "发送卡片消息", params: ["target", "card"] },
-    { action: "send_image", description: "发送图片", params: ["target", "filePath"] },
-    { action: "send_file", description: "发送文件", params: ["target", "filePath"] },
+    { action: "send_card", description: "发送卡片消息（card 为卡片 JSON）", params: ["target", "card"] },
+    {
+      action: "send_image",
+      description: "发送图片（filePath 为本地路径）",
+      params: ["target", "filePath"],
+    },
+    {
+      action: "send_file",
+      description: "发送文件（filePath 为本地路径）",
+      params: ["target", "filePath", "fileName?"],
+    },
     // 消息 - 高级
     { action: "msg_forward", description: "转发消息", params: ["messageId", "targetChatId"] },
     {
       action: "msg_merge_forward",
-      description: "合并转发多条消息",
+      description: "合并转发多条消息（messageIds 支持数组或逗号分隔）",
       params: ["messageIds", "targetChatId"],
     },
-    { action: "msg_urgent", description: "发送加急消息", params: ["messageId", "userIds"] },
+    {
+      action: "msg_urgent",
+      description: "发送加急消息（userIds 支持数组或逗号分隔）",
+      params: ["messageId", "userIds"],
+    },
     { action: "msg_read_users", description: "获取消息已读用户", params: ["messageId"] },
     // 聊天管理
     {
       action: "chat_create",
-      description: "创建群聊",
+      description: "创建群聊（userIds 支持数组或逗号分隔）",
       params: ["name", "description?", "userIds?"],
     },
     { action: "chat_get", description: "获取群聊信息", params: ["chatId"] },
@@ -633,8 +645,16 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     { action: "chat_list", description: "获取群聊列表", params: [] },
     { action: "chat_search", description: "搜索群聊", params: ["query"] },
     // 聊天成员
-    { action: "chat_members_add", description: "添加群成员", params: ["chatId", "userIds"] },
-    { action: "chat_members_remove", description: "移除群成员", params: ["chatId", "userIds"] },
+    {
+      action: "chat_members_add",
+      description: "添加群成员（userIds 支持数组或逗号分隔）",
+      params: ["chatId", "userIds"],
+    },
+    {
+      action: "chat_members_remove",
+      description: "移除群成员（userIds 支持数组或逗号分隔）",
+      params: ["chatId", "userIds"],
+    },
     { action: "chat_members_list", description: "获取群成员列表", params: ["chatId"] },
     {
       action: "chat_members_check",
@@ -642,10 +662,14 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
       params: ["chatId", "userId"],
     },
     // 群管理员
-    { action: "chat_managers_add", description: "添加群管理员", params: ["chatId", "managerIds"] },
+    {
+      action: "chat_managers_add",
+      description: "添加群管理员（managerIds 支持数组或逗号分隔）",
+      params: ["chatId", "managerIds"],
+    },
     {
       action: "chat_managers_remove",
-      description: "移除群管理员",
+      description: "移除群管理员（managerIds 支持数组或逗号分隔）",
       params: ["chatId", "managerIds"],
     },
     // 会话标签页
@@ -660,7 +684,11 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
       description: "更新会话标签页",
       params: ["chatId", "tabId", "tabName"],
     },
-    { action: "chat_tab_delete", description: "删除会话标签页", params: ["chatId", "tabIds"] },
+    {
+      action: "chat_tab_delete",
+      description: "删除会话标签页（tabIds 支持数组或逗号分隔）",
+      params: ["chatId", "tabIds"],
+    },
     // 置顶消息
     { action: "chat_top_notice_put", description: "置顶消息", params: ["chatId", "messageId"] },
     { action: "chat_top_notice_delete", description: "取消置顶消息", params: ["chatId"] },
@@ -697,14 +725,30 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
       params: ["documentId", "blockId", "text", "checked?"],
     },
     { action: "doc_block_delete", description: "删除指定块", params: ["documentId", "blockId"] },
-    { action: "doc_blocks_delete", description: "批量删除块", params: ["documentId", "blockIds"] },
+    {
+      action: "doc_blocks_delete",
+      description: "批量删除块（blockIds 支持数组或逗号分隔）",
+      params: ["documentId", "blockIds"],
+    },
     // 云空间
     { action: "folder_create", description: "创建文件夹", params: ["name", "parentToken?"] },
     { action: "folder_list", description: "列出文件夹内容", params: ["folderToken"] },
-    { action: "file_upload", description: "上传文件", params: ["filePath", "folderToken"] },
-    { action: "file_download", description: "下载文件", params: ["fileToken", "savePath"] },
+    {
+      action: "file_upload",
+      description: "上传文件（filePath 为本地路径）",
+      params: ["filePath", "folderToken", "fileName?"],
+    },
+    {
+      action: "file_download",
+      description: "下载文件（savePath 为本地路径）",
+      params: ["fileToken", "savePath"],
+    },
     { action: "file_search", description: "搜索文件", params: ["query"] },
-    { action: "file_meta", description: "获取文件元数据", params: ["fileToken", "fileType"] },
+    {
+      action: "file_meta",
+      description: "获取文件元数据（fileType: doc/docx/sheet/bitable/file/folder）",
+      params: ["fileToken", "fileType"],
+    },
     { action: "file_move", description: "移动文件", params: ["fileToken", "targetFolderToken"] },
     {
       action: "file_copy",
@@ -714,13 +758,17 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     { action: "file_delete", description: "删除文件", params: ["fileToken"] },
     {
       action: "file_shortcut",
-      description: "创建快捷方式",
+      description: "创建快捷方式（targetType: doc/docx/sheet/bitable/file/folder）",
       params: ["targetToken", "targetType", "parentFolderToken"],
     },
-    { action: "file_batch_download_urls", description: "批量获取下载链接", params: ["fileTokens"] },
+    {
+      action: "file_batch_download_urls",
+      description: "批量获取下载链接（fileTokens 支持数组或逗号分隔）",
+      params: ["fileTokens"],
+    },
     {
       action: "file_transfer_owner",
-      description: "转移文件所有权",
+      description: "转移文件所有权（fileType: doc/docx/sheet/bitable/file/folder）",
       params: ["fileToken", "fileType", "newOwnerId"],
     },
     // 多维表格 - 应用
@@ -732,7 +780,7 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     { action: "bitable_fields", description: "列出字段", params: ["appToken", "tableId"] },
     {
       action: "bitable_field_create",
-      description: "创建字段",
+      description: "创建字段（fieldType 为字段类型数字 ID）",
       params: ["appToken", "tableId", "fieldName", "fieldType"],
     },
     // 多维表格 - 记录
@@ -748,12 +796,12 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     },
     {
       action: "bitable_record_create",
-      description: "创建记录",
+      description: "创建记录（fields 为记录 JSON）",
       params: ["appToken", "tableId", "fields"],
     },
     {
       action: "bitable_record_update",
-      description: "更新记录",
+      description: "更新记录（fields 为记录 JSON）",
       params: ["appToken", "tableId", "recordId", "fields"],
     },
     {
@@ -763,7 +811,7 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     },
     {
       action: "bitable_records_delete",
-      description: "批量删除记录",
+      description: "批量删除记录（recordIds 支持数组或逗号分隔）",
       params: ["appToken", "tableId", "recordIds"],
     },
     // 多维表格 - 视图
@@ -775,7 +823,7 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     },
     {
       action: "bitable_view_create",
-      description: "创建视图",
+      description: "创建视图（viewType 可选）",
       params: ["appToken", "tableId", "viewName", "viewType?"],
     },
     {
@@ -787,31 +835,31 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     { action: "bitable_roles", description: "列出角色", params: ["appToken"] },
     {
       action: "bitable_role_create",
-      description: "创建角色",
+      description: "创建角色（tablePerm/recPerm 为数字）",
       params: ["appToken", "roleName", "tablePerm?", "recPerm?"],
     },
     {
       action: "bitable_role_update",
-      description: "更新角色",
+      description: "更新角色（tablePerm/recPerm 为数字）",
       params: ["appToken", "roleId", "roleName?", "tablePerm?", "recPerm?"],
     },
     { action: "bitable_role_delete", description: "删除角色", params: ["appToken", "roleId"] },
     { action: "bitable_role_members", description: "列出角色成员", params: ["appToken", "roleId"] },
     {
       action: "bitable_role_member_add",
-      description: "添加角色成员",
+      description: "添加角色成员（memberType: user/chat/department）",
       params: ["appToken", "roleId", "memberId", "memberType?"],
     },
     {
       action: "bitable_role_member_remove",
-      description: "移除角色成员",
+      description: "移除角色成员（memberType: user/chat/department）",
       params: ["appToken", "roleId", "memberId", "memberType?"],
     },
     // 多维表格 - 自动化
     { action: "bitable_workflows", description: "列出自动化规则", params: ["appToken", "tableId"] },
     {
       action: "bitable_workflow_toggle",
-      description: "启用/禁用自动化规则",
+      description: "启用/禁用自动化规则（enabled 为 true/false）",
       params: ["appToken", "tableId", "workflowId", "enabled"],
     },
     // 电子表格 - 基础
@@ -827,12 +875,12 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     { action: "sheet_read", description: "读取单元格", params: ["spreadsheetToken", "range"] },
     {
       action: "sheet_write",
-      description: "写入单元格",
+      description: "写入单元格（values 为二维数组 JSON）",
       params: ["spreadsheetToken", "range", "values"],
     },
     {
       action: "sheet_append",
-      description: "追加行数据",
+      description: "追加行数据（values 为二维数组 JSON）",
       params: ["spreadsheetToken", "range", "values"],
     },
     // 电子表格 - 行列操作
@@ -859,24 +907,24 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     // 电子表格 - 样式
     {
       action: "sheet_style",
-      description: "设置单元格样式",
+      description: "设置单元格样式（style 为样式 JSON）",
       params: ["spreadsheetToken", "range", "style"],
     },
     {
       action: "sheet_merge",
-      description: "合并单元格",
+      description: "合并单元格（mergeType 默认 MERGE_ALL）",
       params: ["spreadsheetToken", "range", "mergeType?"],
     },
     { action: "sheet_unmerge", description: "拆分单元格", params: ["spreadsheetToken", "range"] },
     // 电子表格 - 高级
     {
       action: "sheet_sort",
-      description: "排序",
+      description: "排序（sortSpecs 为排序 JSON）",
       params: ["spreadsheetToken", "sheetId", "range", "sortSpecs"],
     },
     {
       action: "sheet_freeze",
-      description: "冻结行列",
+      description: "冻结行列（frozenRows/frozenColumns 为数字）",
       params: ["spreadsheetToken", "sheetId", "frozenRows", "frozenColumns"],
     },
     {
@@ -929,13 +977,21 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     { action: "cal_event_get", description: "获取日程详情", params: ["calendarId", "eventId"] },
     {
       action: "cal_event_create",
-      description: "创建日程",
+      description: "创建日程（startTime/endTime 支持时间字符串或秒级时间戳）",
       params: ["calendarId", "summary", "startTime", "endTime", "description?", "location?"],
     },
     {
       action: "cal_event_update",
-      description: "更新日程",
-      params: ["calendarId", "eventId", "summary?", "startTime?", "endTime?"],
+      description: "更新日程（startTime/endTime 支持时间字符串或秒级时间戳）",
+      params: [
+        "calendarId",
+        "eventId",
+        "summary?",
+        "startTime?",
+        "endTime?",
+        "description?",
+        "location?",
+      ],
     },
     { action: "cal_event_delete", description: "删除日程", params: ["calendarId", "eventId"] },
     { action: "cal_event_search", description: "搜索日程", params: ["calendarId", "query"] },
@@ -943,13 +999,13 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     { action: "cal_attendees", description: "获取日程参与者", params: ["calendarId", "eventId"] },
     {
       action: "cal_attendee_add",
-      description: "添加参与者",
+      description: "添加参与者（userIds 支持数组或逗号分隔）",
       params: ["calendarId", "eventId", "userIds"],
     },
     // 日历 - 忙闲
     {
       action: "cal_freebusy",
-      description: "查询忙闲状态",
+      description: "查询忙闲状态（userIds 支持数组或逗号分隔；startTime/endTime 支持时间字符串或秒级时间戳）",
       params: ["userIds", "startTime", "endTime"],
     },
     // 日历 - 订阅
@@ -959,16 +1015,20 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     { action: "cal_acls", description: "获取日历访问控制列表", params: ["calendarId"] },
     {
       action: "cal_acl_add",
-      description: "添加日历访问控制",
+      description: "添加日历访问控制（role: free_busy_reader/reader/writer/owner）",
       params: ["calendarId", "userId", "role"],
     },
     { action: "cal_acl_remove", description: "删除日历访问控制", params: ["calendarId", "aclId"] },
     // 任务 - 基础
-    { action: "task_create", description: "创建任务", params: ["summary", "due?", "description?"] },
+    {
+      action: "task_create",
+      description: "创建任务（due 支持时间字符串或秒级时间戳）",
+      params: ["summary", "due?", "description?"],
+    },
     { action: "task_get", description: "获取任务详情", params: ["taskId"] },
     {
       action: "task_update",
-      description: "更新任务",
+      description: "更新任务（due 支持时间字符串或秒级时间戳）",
       params: ["taskId", "summary?", "due?", "description?"],
     },
     { action: "task_delete", description: "删除任务", params: ["taskId"] },
@@ -995,23 +1055,23 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     // 任务成员
     {
       action: "task_members_add",
-      description: "添加任务成员",
+      description: "添加任务成员（memberIds 支持数组或逗号分隔）",
       params: ["taskId", "memberIds", "memberRole?"],
     },
     {
       action: "task_members_remove",
-      description: "移除任务成员",
+      description: "移除任务成员（memberIds 支持数组或逗号分隔）",
       params: ["taskId", "memberIds", "memberRole?"],
     },
     // 任务依赖
     {
       action: "task_dependencies_add",
-      description: "添加任务依赖",
+      description: "添加任务依赖（dependencyTaskIds 支持数组或逗号分隔）",
       params: ["taskId", "dependencyTaskIds", "dependencyType?"],
     },
     {
       action: "task_dependencies_remove",
-      description: "移除任务依赖",
+      description: "移除任务依赖（dependencyTaskIds 支持数组或逗号分隔）",
       params: ["taskId", "dependencyTaskIds", "dependencyType?"],
     },
     // 任务附件
@@ -1021,12 +1081,12 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     // 任务列表成员
     {
       action: "tasklist_members_add",
-      description: "添加任务列表成员",
+      description: "添加任务列表成员（memberIds 支持数组或逗号分隔）",
       params: ["tasklistId", "memberIds"],
     },
     {
       action: "tasklist_members_remove",
-      description: "移除任务列表成员",
+      description: "移除任务列表成员（memberIds 支持数组或逗号分隔）",
       params: ["tasklistId", "memberIds"],
     },
     // 知识库 - 空间
@@ -1078,15 +1138,31 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
       description: "搜索消息",
       params: ["query", "chatId?", "startTime?", "endTime?"],
     },
-    { action: "search_docs", description: "搜索云文档", params: ["query", "docTypes?"] },
+    {
+      action: "search_docs",
+      description: "搜索云文档（docTypes 支持数组或逗号分隔）",
+      params: ["query", "docTypes?"],
+    },
     { action: "search_files", description: "搜索云空间文件", params: ["query", "folderToken?"] },
-    { action: "search_all", description: "综合搜索", params: ["query", "types?"] },
+    {
+      action: "search_all",
+      description: "综合搜索（types 支持数组或逗号分隔；默认 message/doc）",
+      params: ["query", "types?"],
+    },
     // AI 能力
-    { action: "ai_ocr", description: "图片文字识别", params: ["image"] },
-    { action: "ai_speech_to_text", description: "语音转文字", params: ["audio", "format?"] },
+    {
+      action: "ai_ocr",
+      description: "图片文字识别（image 支持本地路径或 base64/data URL）",
+      params: ["image"],
+    },
+    {
+      action: "ai_speech_to_text",
+      description: "语音转文字（audio 支持本地路径或 base64/data URL）",
+      params: ["audio", "format?"],
+    },
     {
       action: "ai_translate",
-      description: "翻译文本",
+      description: "翻译文本（targetLang/sourceLang 使用语言代码）",
       params: ["text", "targetLang", "sourceLang?"],
     },
     { action: "ai_detect_language", description: "检测文本语言", params: ["text"] },
@@ -1094,7 +1170,7 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     // 邮件 - 消息
     {
       action: "mail_send",
-      description: "发送邮件",
+      description: "发送邮件（to/cc/bcc 支持数组或逗号分隔）",
       params: ["userMailboxId", "subject", "to", "bodyHtml?", "bodyPlainText?", "cc?", "bcc?"],
     },
     { action: "mail_get", description: "获取邮件详情", params: ["userMailboxId", "messageId"] },
@@ -1134,7 +1210,7 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     {
       action: "mailgroup_member_add",
       description: "添加邮件组成员",
-      params: ["mailGroupId", "email?", "userId?", "type?"],
+      params: ["mailGroupId", "email?", "userId?", "departmentId?", "type?"],
     },
     {
       action: "mailgroup_member_remove",
@@ -1176,12 +1252,12 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     { action: "contact_user_list", description: "获取用户列表", params: ["departmentId?"] },
     {
       action: "contact_user_batch",
-      description: "批量获取用户信息",
+      description: "批量获取用户信息（userIds 支持数组或逗号分隔）",
       params: ["userIds", "userIdType?"],
     },
     {
       action: "contact_user_batch_id",
-      description: "批量获取用户ID",
+      description: "批量获取用户ID（emails/mobiles 支持数组或逗号分隔）",
       params: ["emails?", "mobiles?"],
     },
     {
@@ -1209,7 +1285,7 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     { action: "contact_department_search", description: "搜索部门", params: ["query"] },
     {
       action: "contact_department_batch",
-      description: "批量获取部门信息",
+      description: "批量获取部门信息（departmentIds 支持数组或逗号分隔）",
       params: ["departmentIds"],
     },
     // 通讯录 - 用户组
@@ -1237,12 +1313,12 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     },
     {
       action: "contact_group_members_batch_add",
-      description: "批量添加用户组成员",
+      description: "批量添加用户组成员（members 为 JSON 数组）",
       params: ["groupId", "members"],
     },
     {
       action: "contact_group_members_batch_remove",
-      description: "批量移除用户组成员",
+      description: "批量移除用户组成员（members 为 JSON 数组）",
       params: ["groupId", "members"],
     },
     // 审批 - 定义
@@ -1262,12 +1338,12 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     { action: "approval_cancel", description: "撤销审批", params: ["instanceCode", "userId"] },
     {
       action: "approval_cc",
-      description: "抄送审批",
+      description: "抄送审批（ccUserIds 支持数组或逗号分隔）",
       params: ["instanceCode", "userId", "ccUserIds", "comment?"],
     },
     {
       action: "approval_add_sign",
-      description: "加签",
+      description: "加签（addSignUserIds 支持数组或逗号分隔）",
       params: ["instanceCode", "userId", "taskId", "addSignUserIds", "addSignType", "reason?"],
     },
     {
@@ -1312,13 +1388,13 @@ const feishuMessageActions: ChannelMessageActionAdapter = {
     // 词典 - 词条
     {
       action: "lingo_entity_create",
-      description: "创建词条",
+      description: "创建词条（aliases 支持数组或逗号分隔）",
       params: ["mainKey", "description", "aliases?", "richText?", "repoId?"],
     },
     { action: "lingo_entity_get", description: "获取词条详情", params: ["entityId", "repoId?"] },
     {
       action: "lingo_entity_update",
-      description: "更新词条",
+      description: "更新词条（aliases 支持数组或逗号分隔）",
       params: ["entityId", "mainKey?", "description?", "aliases?", "repoId?"],
     },
     { action: "lingo_entity_delete", description: "删除词条", params: ["entityId", "repoId?"] },
