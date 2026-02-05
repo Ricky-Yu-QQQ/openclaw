@@ -16,7 +16,7 @@ import {
   isFeishuGroupAllowed,
 } from "./policy.js";
 import { createFeishuReplyDispatcher } from "./reply-dispatcher.js";
-import { getMessageFeishu } from "./send.js";
+import { getMessageFeishu, sendMessageFeishu } from "./send.js";
 import { downloadImageFeishu, downloadMessageResourceFeishu } from "./media.js";
 import {
   extractMentionTargets,
@@ -529,85 +529,144 @@ export async function handleFeishuMessage(params: {
     log(`feishu: detected @ forward request, targets: [${names}]`);
   }
 
-  const historyLimit = Math.max(
-    0,
-    feishuCfg?.historyLimit ?? cfg.messages?.groupChat?.historyLimit ?? DEFAULT_GROUP_HISTORY_LIMIT,
-  );
-
-  if (isGroup) {
-    const groupPolicy = feishuCfg?.groupPolicy ?? "open";
-    const groupAllowFrom = feishuCfg?.groupAllowFrom ?? [];
-    const groupConfig = resolveFeishuGroupConfig({ cfg: feishuCfg, groupId: ctx.chatId });
-
-    // Check if this GROUP is allowed (groupAllowFrom contains group IDs like oc_xxx, not user IDs)
-    const groupAllowed = isFeishuGroupAllowed({
-      groupPolicy,
-      allowFrom: groupAllowFrom,
-      senderId: ctx.chatId, // Check group ID, not sender ID
-      senderName: undefined,
-    });
-
-    if (!groupAllowed) {
-      log(`feishu: group ${ctx.chatId} not in allowlist`);
-      return;
-    }
-
-    // Additional sender-level allowlist check if group has specific allowFrom config
-    const senderAllowFrom = groupConfig?.allowFrom ?? [];
-    if (senderAllowFrom.length > 0) {
-      const senderAllowed = isFeishuGroupAllowed({
-        groupPolicy: "allowlist",
-        allowFrom: senderAllowFrom,
-        senderId: ctx.senderOpenId,
-        senderName: ctx.senderName,
-      });
-      if (!senderAllowed) {
-        log(`feishu: sender ${ctx.senderOpenId} not in group ${ctx.chatId} sender allowlist`);
-        return;
-      }
-    }
-
-    const { requireMention } = resolveFeishuReplyPolicy({
-      isDirectMessage: false,
-      globalConfig: feishuCfg,
-      groupConfig,
-    });
-
-    if (requireMention && !ctx.mentionedBot) {
-      log(`feishu: message in group ${ctx.chatId} did not mention bot, recording to history`);
-      if (chatHistories) {
-        recordPendingHistoryEntryIfEnabled({
-          historyMap: chatHistories,
-          historyKey: ctx.chatId,
-          limit: historyLimit,
-          entry: {
-            sender: ctx.senderOpenId,
-            body: `${ctx.senderName ?? ctx.senderOpenId}: ${ctx.content}`,
-            timestamp: Date.now(),
-            messageId: ctx.messageId,
-          },
-        });
-      }
-      return;
-    }
-  } else {
-    const dmPolicy = feishuCfg?.dmPolicy ?? "pairing";
-    const allowFrom = feishuCfg?.allowFrom ?? [];
-
-    if (dmPolicy === "allowlist") {
-      const match = resolveFeishuAllowlistMatch({
-        allowFrom,
-        senderId: ctx.senderOpenId,
-      });
-      if (!match.allowed) {
-        log(`feishu: sender ${ctx.senderOpenId} not in DM allowlist`);
-        return;
-      }
-    }
-  }
-
   try {
     const core = getFeishuRuntime();
+
+    const historyLimit = Math.max(
+      0,
+      feishuCfg?.historyLimit ?? cfg.messages?.groupChat?.historyLimit ?? DEFAULT_GROUP_HISTORY_LIMIT,
+    );
+
+    const rawBody = ctx.content?.trim() || "";
+    const dmPolicy = feishuCfg?.dmPolicy ?? "pairing";
+    const shouldComputeAuth = core.channel.commands.shouldComputeCommandAuthorized(rawBody, cfg);
+    const useAccessGroups = cfg.commands?.useAccessGroups !== false;
+    const storeAllowFrom =
+      !isGroup && (dmPolicy !== "open" || shouldComputeAuth)
+        ? await core.channel.pairing.readAllowFromStore("feishu").catch(() => [])
+        : [];
+    const effectiveAllowFrom = [
+      ...(feishuCfg?.allowFrom ?? []).map((entry) => String(entry)),
+      ...storeAllowFrom.map((entry) => String(entry)),
+    ];
+    const senderAllowedByConfig = resolveFeishuAllowlistMatch({
+      allowFrom: effectiveAllowFrom,
+      senderId: ctx.senderOpenId,
+      senderName: ctx.senderName,
+    }).allowed;
+    let commandAuthorized: boolean | undefined = shouldComputeAuth
+      ? core.channel.commands.resolveCommandAuthorizedFromAuthorizers({
+          useAccessGroups,
+          authorizers: [
+            { configured: effectiveAllowFrom.length > 0, allowed: senderAllowedByConfig },
+          ],
+        })
+      : undefined;
+
+    if (isGroup) {
+      const groupPolicy = feishuCfg?.groupPolicy ?? "allowlist";
+      const groupAllowFrom = feishuCfg?.groupAllowFrom ?? [];
+      const groupConfig = resolveFeishuGroupConfig({ cfg: feishuCfg, groupId: ctx.chatId });
+
+      // Check if this GROUP is allowed (groupAllowFrom contains group IDs like oc_xxx, not user IDs)
+      const groupAllowed = isFeishuGroupAllowed({
+        groupPolicy,
+        allowFrom: groupAllowFrom,
+        senderId: ctx.chatId, // Check group ID, not sender ID
+        senderName: undefined,
+      });
+
+      if (!groupAllowed) {
+        log(`feishu: group ${ctx.chatId} not in allowlist`);
+        return;
+      }
+
+      // Additional sender-level allowlist check if group has specific allowFrom config
+      const senderAllowFrom = groupConfig?.allowFrom ?? [];
+      if (senderAllowFrom.length > 0) {
+        const senderAllowed = isFeishuGroupAllowed({
+          groupPolicy: "allowlist",
+          allowFrom: senderAllowFrom,
+          senderId: ctx.senderOpenId,
+          senderName: ctx.senderName,
+        });
+        if (!senderAllowed) {
+          log(`feishu: sender ${ctx.senderOpenId} not in group ${ctx.chatId} sender allowlist`);
+          return;
+        }
+      }
+
+      if (shouldComputeAuth && senderAllowFrom.length > 0) {
+        const senderAllowedForGroupCommands = resolveFeishuAllowlistMatch({
+          allowFrom: senderAllowFrom,
+          senderId: ctx.senderOpenId,
+          senderName: ctx.senderName,
+        }).allowed;
+        commandAuthorized = core.channel.commands.resolveCommandAuthorizedFromAuthorizers({
+          useAccessGroups,
+          authorizers: [
+            { configured: effectiveAllowFrom.length > 0, allowed: senderAllowedByConfig },
+            {
+              configured: senderAllowFrom.length > 0,
+              allowed: senderAllowedForGroupCommands,
+            },
+          ],
+        });
+      }
+
+      const { requireMention } = resolveFeishuReplyPolicy({
+        isDirectMessage: false,
+        globalConfig: feishuCfg,
+        groupConfig,
+      });
+
+      if (requireMention && !ctx.mentionedBot) {
+        log(`feishu: message in group ${ctx.chatId} did not mention bot, recording to history`);
+        if (chatHistories) {
+          recordPendingHistoryEntryIfEnabled({
+            historyMap: chatHistories,
+            historyKey: ctx.chatId,
+            limit: historyLimit,
+            entry: {
+              sender: ctx.senderOpenId,
+              body: `${ctx.senderName ?? ctx.senderOpenId}: ${ctx.content}`,
+              timestamp: Date.now(),
+              messageId: ctx.messageId,
+            },
+          });
+        }
+        return;
+      }
+    } else if (dmPolicy !== "open") {
+      if (!senderAllowedByConfig) {
+        if (dmPolicy === "pairing") {
+          const { code, created } = await core.channel.pairing.upsertPairingRequest({
+            channel: "feishu",
+            id: ctx.senderOpenId,
+            meta: { name: ctx.senderName ?? undefined },
+          });
+          if (created) {
+            log(`feishu: pairing request sender=${ctx.senderOpenId}`);
+            try {
+              await sendMessageFeishu({
+                cfg,
+                to: ctx.senderOpenId,
+                text: core.channel.pairing.buildPairingReply({
+                  channel: "feishu",
+                  idLine: `Your Feishu user id: ${ctx.senderOpenId}`,
+                  code,
+                }),
+              });
+            } catch (err) {
+              log(`feishu: pairing reply failed for ${ctx.senderOpenId}: ${String(err)}`);
+            }
+          }
+        } else {
+          log(`feishu: sender ${ctx.senderOpenId} not in DM allowlist`);
+        }
+        return;
+      }
+    }
 
     // In group chats, the session is scoped to the group, but the *speaker* is the sender.
     // Using a group-scoped From causes the agent to treat different users as the same person.
@@ -782,7 +841,7 @@ export async function handleFeishuMessage(params: {
       MessageSid: ctx.messageId,
       Timestamp: Date.now(),
       WasMentioned: ctx.mentionedBot,
-      CommandAuthorized: true,
+      CommandAuthorized: commandAuthorized,
       OriginatingChannel: "feishu" as const,
       OriginatingTo: feishuTo,
       ...mediaPayload,

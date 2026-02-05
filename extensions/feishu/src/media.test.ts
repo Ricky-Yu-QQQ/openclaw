@@ -4,6 +4,12 @@ import path from "path";
 import os from "os";
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
 
+const loadWebMedia = vi.fn();
+vi.mock("openclaw/plugin-sdk", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk")>();
+  return { ...actual, loadWebMedia };
+});
+
 let imageGetResponse: any;
 let resourceGetResponse: any;
 let imageCreateResponse: any;
@@ -55,6 +61,7 @@ describe("feishu media", () => {
     fileCreateResponse = undefined;
     messageCreateResponse = { code: 0, data: { message_id: "m1" } };
     messageReplyResponse = { code: 0, data: { message_id: "m2" } };
+    loadWebMedia.mockReset();
   });
 
   it("detects file types", () => {
@@ -213,6 +220,9 @@ describe("feishu media", () => {
   it("sends media from buffer, local path, and url", async () => {
     imageCreateResponse = { image_key: "img_key" };
     fileCreateResponse = { file_key: "file_key" };
+    const localCfg: ClawdbotConfig = {
+      channels: { feishu: { appId: "app", appSecret: "secret", mediaAllowLocal: true } },
+    } as ClawdbotConfig;
 
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "feishu-media-"));
     const imgPath = path.join(tmpDir, "img.png");
@@ -223,30 +233,35 @@ describe("feishu media", () => {
     const res1 = await sendMediaFeishu({ cfg, to: "ou_1", mediaBuffer: Buffer.from("img"), fileName: "img.png" });
     expect(res1.messageId).toBe("m1");
 
-    const res2 = await sendMediaFeishu({ cfg, to: "ou_1", mediaUrl: imgPath });
+    loadWebMedia.mockResolvedValueOnce({ buffer: Buffer.from("img"), kind: "image", fileName: "img.png" });
+    const res2 = await sendMediaFeishu({ cfg: localCfg, to: "ou_1", mediaUrl: imgPath });
     expect(res2.messageId).toBe("m1");
 
-    const res3 = await sendMediaFeishu({ cfg, to: "ou_1", mediaUrl: filePath });
+    loadWebMedia.mockResolvedValueOnce({ buffer: Buffer.from("file"), kind: "document", fileName: "doc.pdf" });
+    const res3 = await sendMediaFeishu({ cfg: localCfg, to: "ou_1", mediaUrl: filePath });
     expect(res3.messageId).toBe("m1");
 
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, arrayBuffer: async () => new ArrayBuffer(2) });
-    vi.stubGlobal("fetch", fetchMock);
+    loadWebMedia.mockResolvedValueOnce({ buffer: Buffer.from("file"), kind: "document", fileName: "doc.pdf" });
     const res4 = await sendMediaFeishu({ cfg, to: "ou_1", mediaUrl: "https://example.com/doc.pdf" });
     expect(res4.messageId).toBe("m1");
   });
 
   it("throws when remote fetch fails", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 500 });
-    vi.stubGlobal("fetch", fetchMock);
-
+    loadWebMedia.mockRejectedValue(new Error("boom"));
     await expect(
       sendMediaFeishu({ cfg, to: "ou_1", mediaUrl: "https://example.com/doc.pdf" }),
-    ).rejects.toThrow("Failed to fetch media");
+    ).rejects.toThrow("boom");
   });
 
   it("throws when no media provided", async () => {
     await expect(sendMediaFeishu({ cfg, to: "ou_1" })).rejects.toThrow(
       "Either mediaUrl or mediaBuffer must be provided",
+    );
+  });
+
+  it("rejects local paths when disabled", async () => {
+    await expect(sendMediaFeishu({ cfg, to: "ou_1", mediaUrl: "/tmp/file.png" })).rejects.toThrow(
+      "Local media paths are disabled",
     );
   });
 });

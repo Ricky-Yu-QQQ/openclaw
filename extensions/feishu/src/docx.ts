@@ -6,6 +6,7 @@ import type * as Lark from "@larksuiteoapi/node-sdk";
 import { Readable } from "stream";
 import { FeishuDocSchema, type FeishuDocParams } from "./doc-schema.js";
 import { resolveToolsConfig } from "./tools-config.js";
+import { getFeishuRuntime } from "./runtime.js";
 
 // ============ Helpers ============
 
@@ -28,6 +29,86 @@ function extractImageUrls(markdown: string): string[] {
     }
   }
   return urls;
+}
+
+const DEFAULT_DOCX_IMAGE_MAX_MB = 30;
+const DEFAULT_MEDIA_TIMEOUT_MS = 15000;
+
+function normalizeHostname(hostname: string): string {
+  const normalized = hostname.trim().toLowerCase().replace(/\.$/, "");
+  if (normalized.startsWith("[") && normalized.endsWith("]")) {
+    return normalized.slice(1, -1);
+  }
+  return normalized;
+}
+
+function buildHostnameSet(values?: string[]): Set<string> {
+  if (!values || values.length === 0) {
+    return new Set<string>();
+  }
+  return new Set(values.map((value) => normalizeHostname(value)).filter(Boolean));
+}
+
+function assertRemoteUrlAllowed(url: string, cfg?: FeishuConfig): URL {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error("Invalid image URL: must be http or https");
+  }
+
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    throw new Error("Invalid image URL: must be http or https");
+  }
+
+  const hostname = normalizeHostname(parsed.hostname);
+  const blocked = buildHostnameSet(cfg?.mediaBlockedHostnames);
+  if (blocked.has(hostname)) {
+    throw new Error(`Image host is blocked: ${parsed.hostname}`);
+  }
+
+  const allowed = buildHostnameSet(cfg?.mediaAllowedHostnames);
+  if (allowed.size > 0 && !allowed.has(hostname)) {
+    throw new Error(`Image host is not allowed: ${parsed.hostname}`);
+  }
+
+  return parsed;
+}
+
+function resolveDocxImageMaxBytes(cfg?: FeishuConfig): number {
+  const maxMb = cfg?.mediaMaxMb ?? DEFAULT_DOCX_IMAGE_MAX_MB;
+  return Math.max(1, maxMb) * 1024 * 1024;
+}
+
+function resolveFetchTimeoutMs(cfg?: FeishuConfig): number {
+  return cfg?.mediaFetchTimeoutMs ?? DEFAULT_MEDIA_TIMEOUT_MS;
+}
+
+function createTimeoutFetch(timeoutMs: number) {
+  return async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (!timeoutMs || timeoutMs <= 0) {
+      return await fetch(input, init);
+    }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const signal = init?.signal;
+    const onAbort = () => controller.abort();
+    if (signal) {
+      if (signal.aborted) {
+        controller.abort();
+      } else {
+        signal.addEventListener("abort", onAbort, { once: true });
+      }
+    }
+    try {
+      return await fetch(input, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+      if (signal) {
+        signal.removeEventListener("abort", onAbort);
+      }
+    }
+  };
 }
 
 const BLOCK_TYPE_NAMES: Record<number, string> = {
@@ -155,12 +236,20 @@ async function uploadImageToDocx(
   return fileToken;
 }
 
-async function downloadImage(url: string): Promise<Buffer> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
-  }
-  return Buffer.from(await response.arrayBuffer());
+async function downloadImage(url: string, feishuCfg?: FeishuConfig): Promise<Buffer> {
+  const parsed = assertRemoteUrlAllowed(url, feishuCfg);
+  const maxBytes = resolveDocxImageMaxBytes(feishuCfg);
+  const timeoutMs = resolveFetchTimeoutMs(feishuCfg);
+  const allowedHostnames = buildHostnameSet(feishuCfg?.mediaAllowedHostnames);
+  const ssrfPolicy = allowedHostnames.size > 0 ? { allowedHostnames: Array.from(allowedHostnames) } : undefined;
+  const runtime = getFeishuRuntime();
+  const fetched = await runtime.channel.media.fetchRemoteMedia({
+    url: parsed.toString(),
+    maxBytes,
+    ssrfPolicy,
+    fetchImpl: createTimeoutFetch(timeoutMs),
+  });
+  return fetched.buffer;
 }
 
 async function processImages(
@@ -168,6 +257,7 @@ async function processImages(
   docToken: string,
   markdown: string,
   insertedBlocks: any[],
+  feishuCfg?: FeishuConfig,
 ): Promise<number> {
   const imageUrls = extractImageUrls(markdown);
   if (imageUrls.length === 0) return 0;
@@ -180,7 +270,7 @@ async function processImages(
     const blockId = imageBlocks[i].block_id;
 
     try {
-      const buffer = await downloadImage(url);
+      const buffer = await downloadImage(url, feishuCfg);
       const urlPath = new URL(url).pathname;
       const fileName = urlPath.split("/").pop() || `image_${i}.png`;
       const fileToken = await uploadImageToDocx(client, blockId, buffer, fileName);
@@ -256,7 +346,12 @@ async function createDoc(client: Lark.Client, title: string, folderToken?: strin
   };
 }
 
-async function writeDoc(client: Lark.Client, docToken: string, markdown: string) {
+async function writeDoc(
+  client: Lark.Client,
+  docToken: string,
+  markdown: string,
+  feishuCfg?: FeishuConfig,
+) {
   const deleted = await clearDocumentContent(client, docToken);
 
   const { blocks } = await convertMarkdown(client, markdown);
@@ -265,7 +360,7 @@ async function writeDoc(client: Lark.Client, docToken: string, markdown: string)
   }
 
   const { children: inserted, skipped } = await insertBlocks(client, docToken, blocks);
-  const imagesProcessed = await processImages(client, docToken, markdown, inserted);
+  const imagesProcessed = await processImages(client, docToken, markdown, inserted, feishuCfg);
 
   return {
     success: true,
@@ -278,14 +373,19 @@ async function writeDoc(client: Lark.Client, docToken: string, markdown: string)
   };
 }
 
-async function appendDoc(client: Lark.Client, docToken: string, markdown: string) {
+async function appendDoc(
+  client: Lark.Client,
+  docToken: string,
+  markdown: string,
+  feishuCfg?: FeishuConfig,
+) {
   const { blocks } = await convertMarkdown(client, markdown);
   if (blocks.length === 0) {
     throw new Error("Content is empty");
   }
 
   const { children: inserted, skipped } = await insertBlocks(client, docToken, blocks);
-  const imagesProcessed = await processImages(client, docToken, markdown, inserted);
+  const imagesProcessed = await processImages(client, docToken, markdown, inserted, feishuCfg);
 
   return {
     success: true,
@@ -415,9 +515,9 @@ export function registerFeishuDocTools(api: OpenClawPluginApi) {
             case "read":
               return json(await readDoc(client, p.doc_token));
             case "write":
-              return json(await writeDoc(client, p.doc_token, p.content));
+              return json(await writeDoc(client, p.doc_token, p.content, feishuCfg));
             case "append":
-              return json(await appendDoc(client, p.doc_token, p.content));
+              return json(await appendDoc(client, p.doc_token, p.content, feishuCfg));
             case "create":
               return json(await createDoc(client, p.title, p.folder_token));
             case "list_blocks":

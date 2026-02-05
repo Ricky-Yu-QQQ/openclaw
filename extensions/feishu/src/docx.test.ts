@@ -43,6 +43,7 @@ vi.mock("./client.js", () => ({
 }));
 
 import { registerFeishuDocTools } from "./docx.js";
+import { setFeishuRuntime } from "./runtime.js";
 
 function buildApi(cfg: any) {
   const tools: Record<string, any> = {};
@@ -71,8 +72,13 @@ describe("feishu doc tools", () => {
     uploadAllRes = { file_token: "file_token" };
     scopeListRes = { code: 0, data: { scopes: [{ scope_name: "im:message", scope_type: "app", grant_status: 1 }] } };
 
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, arrayBuffer: async () => new ArrayBuffer(1) });
-    vi.stubGlobal("fetch", fetchMock);
+    setFeishuRuntime({
+      channel: {
+        media: {
+          fetchRemoteMedia: vi.fn().mockResolvedValue({ buffer: Buffer.from("img") }),
+        },
+      },
+    } as any);
   });
 
   it("skips when credentials missing", () => {

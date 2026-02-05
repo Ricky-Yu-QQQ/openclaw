@@ -1,4 +1,5 @@
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
+import { loadWebMedia } from "openclaw/plugin-sdk";
 import type { FeishuConfig } from "./types.js";
 import { createFeishuClient } from "./client.js";
 import { resolveReceiveIdType, normalizeFeishuTarget } from "./targets.js";
@@ -6,6 +7,67 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { Readable } from "stream";
+
+const DEFAULT_MEDIA_MAX_MB = 30;
+
+function normalizeHostname(hostname: string): string {
+  const normalized = hostname.trim().toLowerCase().replace(/\.$/, "");
+  if (normalized.startsWith("[") && normalized.endsWith("]")) {
+    return normalized.slice(1, -1);
+  }
+  return normalized;
+}
+
+function buildHostnameSet(values?: string[]): Set<string> {
+  if (!values || values.length === 0) {
+    return new Set<string>();
+  }
+  return new Set(values.map((value) => normalizeHostname(value)).filter(Boolean));
+}
+
+function assertRemoteUrlAllowed(url: string, cfg?: FeishuConfig): URL {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error("Invalid media URL: must be http or https");
+  }
+
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    throw new Error("Invalid media URL: must be http or https");
+  }
+
+  const hostname = normalizeHostname(parsed.hostname);
+  const blocked = buildHostnameSet(cfg?.mediaBlockedHostnames);
+  if (blocked.has(hostname)) {
+    throw new Error(`Media host is blocked: ${parsed.hostname}`);
+  }
+
+  const allowed = buildHostnameSet(cfg?.mediaAllowedHostnames);
+  if (allowed.size > 0 && !allowed.has(hostname)) {
+    throw new Error(`Media host is not allowed: ${parsed.hostname}`);
+  }
+
+  return parsed;
+}
+
+function resolveMediaMaxBytes(cfg?: FeishuConfig): number {
+  const maxMb = cfg?.mediaMaxMb ?? DEFAULT_MEDIA_MAX_MB;
+  return Math.max(1, maxMb) * 1024 * 1024;
+}
+
+function resolveSsrFPolicy(cfg?: FeishuConfig) {
+  const allowed = buildHostnameSet(cfg?.mediaAllowedHostnames);
+  if (allowed.size === 0) {
+    return undefined;
+  }
+  return { allowedHostnames: Array.from(allowed) };
+}
+
+function sanitizeTempKey(key: string): string {
+  const base = path.basename(String(key));
+  return base.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
 
 export type DownloadImageResult = {
   buffer: Buffer;
@@ -64,7 +126,8 @@ export async function downloadImageFeishu(params: {
     buffer = Buffer.concat(chunks);
   } else if (typeof responseAny.writeFile === "function") {
     // SDK provides writeFile method - use a temp file
-    const tmpPath = path.join(os.tmpdir(), `feishu_img_${Date.now()}_${imageKey}`);
+    const safeKey = sanitizeTempKey(imageKey);
+    const tmpPath = path.join(os.tmpdir(), `feishu_img_${Date.now()}_${safeKey}`);
     await responseAny.writeFile(tmpPath);
     buffer = await fs.promises.readFile(tmpPath);
     await fs.promises.unlink(tmpPath).catch(() => {}); // cleanup
@@ -145,7 +208,8 @@ export async function downloadMessageResourceFeishu(params: {
     buffer = Buffer.concat(chunks);
   } else if (typeof responseAny.writeFile === "function") {
     // SDK provides writeFile method - use a temp file
-    const tmpPath = path.join(os.tmpdir(), `feishu_${Date.now()}_${fileKey}`);
+    const safeKey = sanitizeTempKey(fileKey);
+    const tmpPath = path.join(os.tmpdir(), `feishu_${Date.now()}_${safeKey}`);
     await responseAny.writeFile(tmpPath);
     buffer = await fs.promises.readFile(tmpPath);
     await fs.promises.unlink(tmpPath).catch(() => {}); // cleanup
@@ -464,40 +528,49 @@ export async function sendMediaFeishu(params: {
 }): Promise<SendMediaResult> {
   const { cfg, to, mediaUrl, mediaBuffer, fileName, replyToMessageId } = params;
 
+  const feishuCfg = cfg.channels?.feishu as FeishuConfig | undefined;
+  if (!feishuCfg) {
+    throw new Error("Feishu channel not configured");
+  }
+
+  const maxBytes = resolveMediaMaxBytes(feishuCfg);
+  const ssrfPolicy = resolveSsrFPolicy(feishuCfg);
+
   let buffer: Buffer;
   let name: string;
+  let isImage = false;
 
   if (mediaBuffer) {
     buffer = mediaBuffer;
     name = fileName ?? "file";
+    if (buffer.length > maxBytes) {
+      throw new Error(`Media exceeds ${Math.round(maxBytes / (1024 * 1024))}MB limit`);
+    }
+    const ext = path.extname(name).toLowerCase();
+    isImage = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".ico", ".tiff"].includes(ext);
   } else if (mediaUrl) {
     if (isLocalPath(mediaUrl)) {
-      // Local file path - read directly
-      const filePath = mediaUrl.startsWith("~")
-        ? mediaUrl.replace("~", process.env.HOME ?? "")
-        : mediaUrl.replace("file://", "");
-
-      if (!fs.existsSync(filePath)) {
-        throw new Error(`Local file not found: ${filePath}`);
+      if (!feishuCfg.mediaAllowLocal) {
+        throw new Error("Local media paths are disabled for Feishu (set mediaAllowLocal=true to enable).");
       }
-      buffer = fs.readFileSync(filePath);
-      name = fileName ?? path.basename(filePath);
+      const loaded = await loadWebMedia(mediaUrl, maxBytes);
+      buffer = loaded.buffer;
+      name = fileName ?? loaded.fileName ?? path.basename(mediaUrl);
+      isImage = loaded.kind === "image";
     } else {
-      // Remote URL - fetch
-      const response = await fetch(mediaUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch media from URL: ${response.status}`);
-      }
-      buffer = Buffer.from(await response.arrayBuffer());
-      name = fileName ?? (path.basename(new URL(mediaUrl).pathname) || "file");
+      const parsed = assertRemoteUrlAllowed(mediaUrl, feishuCfg);
+      const loaded = await loadWebMedia(
+        mediaUrl,
+        maxBytes,
+        ssrfPolicy ? { ssrfPolicy } : undefined,
+      );
+      buffer = loaded.buffer;
+      name = fileName ?? loaded.fileName ?? (path.basename(parsed.pathname) || "file");
+      isImage = loaded.kind === "image";
     }
   } else {
     throw new Error("Either mediaUrl or mediaBuffer must be provided");
   }
-
-  // Determine if it's an image based on extension
-  const ext = path.extname(name).toLowerCase();
-  const isImage = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".ico", ".tiff"].includes(ext);
 
   if (isImage) {
     const { imageKey } = await uploadImageFeishu({ cfg, image: buffer });

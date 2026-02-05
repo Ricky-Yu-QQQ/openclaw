@@ -107,6 +107,10 @@ export const FeishuConfigSchema = z
     chunkMode: z.enum(["length", "newline"]).optional(),
     blockStreamingCoalesce: BlockStreamingCoalesceSchema,
     mediaMaxMb: z.number().positive().optional(),
+    mediaAllowLocal: z.boolean().optional(),
+    mediaAllowedHostnames: z.array(z.string()).optional(),
+    mediaBlockedHostnames: z.array(z.string()).optional(),
+    mediaFetchTimeoutMs: z.number().int().positive().optional(),
     heartbeat: ChannelHeartbeatVisibilitySchema,
     renderMode: RenderModeSchema, // raw = plain text (default), card = interactive card with markdown
     tools: FeishuToolsConfigSchema,

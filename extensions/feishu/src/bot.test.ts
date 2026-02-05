@@ -13,6 +13,7 @@ vi.mock("./client.js", () => ({
 const getMessageFeishu = vi.fn();
 vi.mock("./send.js", () => ({
   getMessageFeishu: (...args: any[]) => getMessageFeishu(...args),
+  sendMessageFeishu: vi.fn(),
 }));
 
 const downloadMessageResourceFeishu = vi.fn();
@@ -77,6 +78,15 @@ describe("feishu bot", () => {
       channel: {
         routing: {
           resolveAgentRoute: () => ({ agentId: "agent", sessionKey: "sess", accountId: "acc" }),
+        },
+        commands: {
+          shouldComputeCommandAuthorized: () => false,
+          resolveCommandAuthorizedFromAuthorizers: () => false,
+        },
+        pairing: {
+          readAllowFromStore: async () => [],
+          upsertPairingRequest: async () => ({ code: "0000", created: false }),
+          buildPairingReply: () => "pairing",
         },
         reply: {
           resolveEnvelopeFormatOptions: () => ({
