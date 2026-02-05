@@ -1,1082 +1,441 @@
-/**
- * 飞书多维表格 API
- *
- * 支持的操作：
- * - 创建/获取多维表格应用
- * - 创建/获取数据表
- * - 字段管理
- * - 记录 CRUD（增删改查）
- */
+import { Type } from "@sinclair/typebox";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import { createFeishuClient } from "./client.js";
+import type { FeishuConfig } from "./types.js";
 
-import type { ResolvedFeishuAccount, ApiResult } from "./types.js";
-import { getFeishuClient } from "./client.js";
+// ============ Helpers ============
 
-// ==================== 类型定义 ====================
-
-/** 多维表格应用信息 */
-export interface BitableApp {
-  appToken: string;
-  name: string;
-  url: string;
-  revision?: number;
+function json(data: unknown) {
+  return {
+    content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+    details: data,
+  };
 }
 
-/** 数据表信息 */
-export interface BitableTable {
-  tableId: string;
-  name: string;
-  revision?: number;
-}
-
-/** 字段信息 */
-export interface BitableField {
-  fieldId: string;
-  fieldName: string;
-  type: number;
-  typeName: string;
-  property?: Record<string, any>;
-}
-
-/** 记录信息 */
-export interface BitableRecord {
-  recordId: string;
-  fields: Record<string, any>;
-  createdTime?: number;
-  modifiedTime?: number;
-}
-
-/** 字段类型映射 */
-const FIELD_TYPE_MAP: Record<number, string> = {
-  1: "text",
-  2: "number",
-  3: "singleSelect",
-  4: "multiSelect",
-  5: "dateTime",
-  7: "checkbox",
-  11: "user",
-  13: "phone",
-  15: "url",
-  17: "attachment",
-  18: "singleLink",
-  19: "formula",
-  20: "duplexLink",
-  21: "location",
-  22: "groupChat",
-  23: "createdTime",
-  24: "modifiedTime",
-  25: "createdUser",
-  26: "modifiedUser",
-  1001: "autoNumber",
+/** Field type ID to human-readable name */
+const FIELD_TYPE_NAMES: Record<number, string> = {
+  1: "Text",
+  2: "Number",
+  3: "SingleSelect",
+  4: "MultiSelect",
+  5: "DateTime",
+  7: "Checkbox",
+  11: "User",
+  13: "Phone",
+  15: "URL",
+  17: "Attachment",
+  18: "SingleLink",
+  19: "Lookup",
+  20: "Formula",
+  21: "DuplexLink",
+  22: "Location",
+  23: "GroupChat",
+  1001: "CreatedTime",
+  1002: "ModifiedTime",
+  1003: "CreatedUser",
+  1004: "ModifiedUser",
+  1005: "AutoNumber",
 };
 
-// ==================== 应用操作 ====================
+// ============ Core Functions ============
 
-/**
- * 创建多维表格应用
- */
-export async function createBitableApp(
-  account: ResolvedFeishuAccount,
-  name: string,
-  folderId?: string
-): Promise<ApiResult<BitableApp>> {
-  const client = getFeishuClient(account);
-
+/** Parse bitable URL and extract tokens */
+function parseBitableUrl(url: string): { token: string; tableId?: string; isWiki: boolean } | null {
   try {
-    const result = await client.bitable.v1.app.create({
-      data: {
-        name,
-        folder_token: folderId,
-      },
-    });
+    const u = new URL(url);
+    const tableId = u.searchParams.get("table") ?? undefined;
 
-    if (result.code === 0 && result.data?.app) {
-      const app = result.data.app;
-      return {
-        ok: true,
-        data: {
-          appToken: app.app_token!,
-          name: app.name || name,
-          url: `https://feishu.cn/base/${app.app_token}`,
-        },
-      };
+    // Wiki format: /wiki/XXXXX?table=YYY
+    const wikiMatch = u.pathname.match(/\/wiki\/([A-Za-z0-9]+)/);
+    if (wikiMatch) {
+      return { token: wikiMatch[1], tableId, isWiki: true };
     }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
+
+    // Base format: /base/XXXXX?table=YYY
+    const baseMatch = u.pathname.match(/\/base\/([A-Za-z0-9]+)/);
+    if (baseMatch) {
+      return { token: baseMatch[1], tableId, isWiki: false };
+    }
+
+    return null;
+  } catch {
+    return null;
   }
 }
 
-/**
- * 获取多维表格应用信息
- */
-export async function getBitableApp(
-  account: ResolvedFeishuAccount,
-  appToken: string
-): Promise<ApiResult<BitableApp>> {
-  const client = getFeishuClient(account);
+/** Get app_token from wiki node_token */
+async function getAppTokenFromWiki(
+  client: ReturnType<typeof createFeishuClient>,
+  nodeToken: string,
+): Promise<string> {
+  const res = await client.wiki.space.getNode({
+    params: { token: nodeToken },
+  });
+  if (res.code !== 0) throw new Error(res.msg);
 
-  try {
-    const result = await client.bitable.v1.app.get({
+  const node = res.data?.node;
+  if (!node) throw new Error("Node not found");
+  if (node.obj_type !== "bitable") {
+    throw new Error(`Node is not a bitable (type: ${node.obj_type})`);
+  }
+
+  return node.obj_token!;
+}
+
+/** Get bitable metadata from URL (handles both /base/ and /wiki/ URLs) */
+async function getBitableMeta(
+  client: ReturnType<typeof createFeishuClient>,
+  url: string,
+) {
+  const parsed = parseBitableUrl(url);
+  if (!parsed) {
+    throw new Error("Invalid URL format. Expected /base/XXX or /wiki/XXX URL");
+  }
+
+  let appToken: string;
+  if (parsed.isWiki) {
+    appToken = await getAppTokenFromWiki(client, parsed.token);
+  } else {
+    appToken = parsed.token;
+  }
+
+  // Get bitable app info
+  const res = await client.bitable.app.get({
+    path: { app_token: appToken },
+  });
+  if (res.code !== 0) throw new Error(res.msg);
+
+  // List tables if no table_id specified
+  let tables: { table_id: string; name: string }[] = [];
+  if (!parsed.tableId) {
+    const tablesRes = await client.bitable.appTable.list({
       path: { app_token: appToken },
     });
-
-    if (result.code === 0 && result.data?.app) {
-      const app = result.data.app;
-      return {
-        ok: true,
-        data: {
-          appToken: app.app_token!,
-          name: app.name || "",
-          url: `https://feishu.cn/base/${app.app_token}`,
-          revision: app.revision,
-        },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-// ==================== 数据表操作 ====================
-
-/**
- * 列出多维表格中的数据表
- */
-export async function listBitableTables(
-  account: ResolvedFeishuAccount,
-  appToken: string
-): Promise<ApiResult<BitableTable[]>> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appTable.list({
-      path: { app_token: appToken },
-    });
-
-    if (result.code === 0) {
-      const tables = (result.data?.items || []).map((t: any) => ({
-        tableId: t.table_id,
-        name: t.name,
-        revision: t.revision,
+    if (tablesRes.code === 0) {
+      tables = (tablesRes.data?.items ?? []).map((t) => ({
+        table_id: t.table_id!,
+        name: t.name!,
       }));
-      return { ok: true, data: tables };
     }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
   }
+
+  return {
+    app_token: appToken,
+    table_id: parsed.tableId,
+    name: res.data?.app?.name,
+    url_type: parsed.isWiki ? "wiki" : "base",
+    ...(tables.length > 0 && { tables }),
+    hint: parsed.tableId
+      ? `Use app_token="${appToken}" and table_id="${parsed.tableId}" for other bitable tools`
+      : `Use app_token="${appToken}" for other bitable tools. Select a table_id from the tables list.`,
+  };
 }
 
-/**
- * 创建数据表
- */
-export async function createBitableTable(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  name: string,
-  defaultViewName?: string
-): Promise<ApiResult<BitableTable>> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appTable.create({
-      path: { app_token: appToken },
-      data: {
-        table: {
-          name,
-          default_view_name: defaultViewName,
-        },
-      },
-    });
-
-    if (result.code === 0 && result.data) {
-      return {
-        ok: true,
-        data: {
-          tableId: result.data.table_id!,
-          name,
-        },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-// ==================== 字段操作 ====================
-
-/**
- * 列出数据表的字段
- */
-export async function listBitableFields(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  tableId: string
-): Promise<ApiResult<BitableField[]>> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appTableField.list({
-      path: { app_token: appToken, table_id: tableId },
-    });
-
-    if (result.code === 0) {
-      const fields = (result.data?.items || []).map((f: any) => ({
-        fieldId: f.field_id,
-        fieldName: f.field_name,
-        type: f.type,
-        typeName: FIELD_TYPE_MAP[f.type] || "unknown",
-        property: f.property,
-      }));
-      return { ok: true, data: fields };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * 创建字段
- */
-export async function createBitableField(
-  account: ResolvedFeishuAccount,
+async function listFields(
+  client: ReturnType<typeof createFeishuClient>,
   appToken: string,
   tableId: string,
-  fieldName: string,
-  fieldType: number,
-  property?: Record<string, any>
-): Promise<ApiResult<BitableField>> {
-  const client = getFeishuClient(account);
+) {
+  const res = await client.bitable.appTableField.list({
+    path: { app_token: appToken, table_id: tableId },
+  });
+  if (res.code !== 0) throw new Error(res.msg);
 
-  try {
-    const result = await client.bitable.v1.appTableField.create({
-      path: { app_token: appToken, table_id: tableId },
-      data: {
-        field_name: fieldName,
-        type: fieldType,
-        property,
-      },
-    });
-
-    if (result.code === 0 && result.data?.field) {
-      const f = result.data.field;
-      return {
-        ok: true,
-        data: {
-          fieldId: f.field_id!,
-          fieldName: f.field_name!,
-          type: f.type!,
-          typeName: FIELD_TYPE_MAP[f.type!] || "unknown",
-        },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
+  const fields = res.data?.items ?? [];
+  return {
+    fields: fields.map((f) => ({
+      field_id: f.field_id,
+      field_name: f.field_name,
+      type: f.type,
+      type_name: FIELD_TYPE_NAMES[f.type ?? 0] || `type_${f.type}`,
+      is_primary: f.is_primary,
+      ...(f.property && { property: f.property }),
+    })),
+    total: fields.length,
+  };
 }
 
-// ==================== 记录操作 ====================
-
-/**
- * 查询记录
- */
-export async function searchBitableRecords(
-  account: ResolvedFeishuAccount,
+async function listRecords(
+  client: ReturnType<typeof createFeishuClient>,
   appToken: string,
   tableId: string,
-  options?: {
-    filter?: string;
-    sort?: string[];
-    fieldNames?: string[];
-    pageSize?: number;
-    pageToken?: string;
-  }
-): Promise<ApiResult<{ records: BitableRecord[]; pageToken?: string; total?: number }>> {
-  const client = getFeishuClient(account);
+  pageSize?: number,
+  pageToken?: string,
+) {
+  const res = await client.bitable.appTableRecord.list({
+    path: { app_token: appToken, table_id: tableId },
+    params: {
+      page_size: pageSize ?? 100,
+      ...(pageToken && { page_token: pageToken }),
+    },
+  });
+  if (res.code !== 0) throw new Error(res.msg);
 
-  try {
-    const result = await client.bitable.v1.appTableRecord.search({
-      path: { app_token: appToken, table_id: tableId },
-      data: {
-        filter: options?.filter ? { conditions: [], conjunction: "and" } : undefined,
-        sort: options?.sort?.map((s) => {
-          const [field, order] = s.split(":");
-          return { field_name: field, desc: order === "desc" };
-        }),
-        field_names: options?.fieldNames,
-        page_size: options?.pageSize || 100,
-        page_token: options?.pageToken,
-      },
-    });
-
-    if (result.code === 0) {
-      const records = (result.data?.items || []).map((r: any) => ({
-        recordId: r.record_id,
-        fields: r.fields || {},
-        createdTime: r.created_time,
-        modifiedTime: r.last_modified_time,
-      }));
-      return {
-        ok: true,
-        data: {
-          records,
-          pageToken: result.data?.page_token,
-          total: result.data?.total,
-        },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
+  return {
+    records: res.data?.items ?? [],
+    has_more: res.data?.has_more ?? false,
+    page_token: res.data?.page_token,
+    total: res.data?.total,
+  };
 }
 
-/**
- * 获取记录列表（简单查询）
- */
-export async function listBitableRecords(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  tableId: string,
-  options?: {
-    viewId?: string;
-    pageSize?: number;
-    pageToken?: string;
-  }
-): Promise<ApiResult<{ records: BitableRecord[]; pageToken?: string; total?: number }>> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appTableRecord.list({
-      path: { app_token: appToken, table_id: tableId },
-      params: {
-        view_id: options?.viewId,
-        page_size: options?.pageSize || 100,
-        page_token: options?.pageToken,
-      },
-    });
-
-    if (result.code === 0) {
-      const records = (result.data?.items || []).map((r: any) => ({
-        recordId: r.record_id,
-        fields: r.fields || {},
-      }));
-      return {
-        ok: true,
-        data: {
-          records,
-          pageToken: result.data?.page_token,
-          total: result.data?.total,
-        },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * 获取单条记录
- */
-export async function getBitableRecord(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  tableId: string,
-  recordId: string
-): Promise<ApiResult<BitableRecord>> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appTableRecord.get({
-      path: { app_token: appToken, table_id: tableId, record_id: recordId },
-    });
-
-    if (result.code === 0 && result.data?.record) {
-      const r = result.data.record;
-      return {
-        ok: true,
-        data: {
-          recordId: r.record_id!,
-          fields: r.fields || {},
-        },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * 创建记录
- */
-export async function createBitableRecord(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  tableId: string,
-  fields: Record<string, any>
-): Promise<ApiResult<BitableRecord>> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appTableRecord.create({
-      path: { app_token: appToken, table_id: tableId },
-      data: { fields },
-    });
-
-    if (result.code === 0 && result.data?.record) {
-      const r = result.data.record;
-      return {
-        ok: true,
-        data: {
-          recordId: r.record_id!,
-          fields: r.fields || fields,
-        },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * 批量创建记录
- */
-export async function createBitableRecords(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  tableId: string,
-  records: Array<{ fields: Record<string, any> }>
-): Promise<ApiResult<{ records: BitableRecord[] }>> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appTableRecord.batchCreate({
-      path: { app_token: appToken, table_id: tableId },
-      data: { records },
-    });
-
-    if (result.code === 0) {
-      const created = (result.data?.records || []).map((r: any) => ({
-        recordId: r.record_id,
-        fields: r.fields || {},
-      }));
-      return { ok: true, data: { records: created } };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * 更新记录
- */
-export async function updateBitableRecord(
-  account: ResolvedFeishuAccount,
+async function getRecord(
+  client: ReturnType<typeof createFeishuClient>,
   appToken: string,
   tableId: string,
   recordId: string,
-  fields: Record<string, any>
-): Promise<ApiResult<BitableRecord>> {
-  const client = getFeishuClient(account);
+) {
+  const res = await client.bitable.appTableRecord.get({
+    path: { app_token: appToken, table_id: tableId, record_id: recordId },
+  });
+  if (res.code !== 0) throw new Error(res.msg);
 
-  try {
-    const result = await client.bitable.v1.appTableRecord.update({
-      path: { app_token: appToken, table_id: tableId, record_id: recordId },
-      data: { fields },
-    });
-
-    if (result.code === 0 && result.data?.record) {
-      const r = result.data.record;
-      return {
-        ok: true,
-        data: {
-          recordId: r.record_id!,
-          fields: r.fields || fields,
-        },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
+  return {
+    record: res.data?.record,
+  };
 }
 
-/**
- * 批量更新记录
- */
-export async function updateBitableRecords(
-  account: ResolvedFeishuAccount,
+async function createRecord(
+  client: ReturnType<typeof createFeishuClient>,
   appToken: string,
   tableId: string,
-  records: Array<{ record_id: string; fields: Record<string, any> }>
-): Promise<ApiResult<{ records: BitableRecord[] }>> {
-  const client = getFeishuClient(account);
+  fields: Record<string, unknown>,
+) {
+  const res = await client.bitable.appTableRecord.create({
+    path: { app_token: appToken, table_id: tableId },
+    data: { fields },
+  });
+  if (res.code !== 0) throw new Error(res.msg);
 
-  try {
-    const result = await client.bitable.v1.appTableRecord.batchUpdate({
-      path: { app_token: appToken, table_id: tableId },
-      data: { records },
-    });
-
-    if (result.code === 0) {
-      const updated = (result.data?.records || []).map((r: any) => ({
-        recordId: r.record_id,
-        fields: r.fields || {},
-      }));
-      return { ok: true, data: { records: updated } };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
+  return {
+    record: res.data?.record,
+  };
 }
 
-/**
- * 删除记录
- */
-export async function deleteBitableRecord(
-  account: ResolvedFeishuAccount,
+async function updateRecord(
+  client: ReturnType<typeof createFeishuClient>,
   appToken: string,
   tableId: string,
-  recordId: string
-): Promise<ApiResult> {
-  const client = getFeishuClient(account);
+  recordId: string,
+  fields: Record<string, unknown>,
+) {
+  const res = await client.bitable.appTableRecord.update({
+    path: { app_token: appToken, table_id: tableId, record_id: recordId },
+    data: { fields },
+  });
+  if (res.code !== 0) throw new Error(res.msg);
 
-  try {
-    const result = await client.bitable.v1.appTableRecord.delete({
-      path: { app_token: appToken, table_id: tableId, record_id: recordId },
-    });
-
-    if (result.code === 0) {
-      return { ok: true };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
+  return {
+    record: res.data?.record,
+  };
 }
 
-/**
- * 批量删除记录
- */
-export async function deleteBitableRecords(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  tableId: string,
-  recordIds: string[]
-): Promise<ApiResult<{ deleted: string[] }>> {
-  const client = getFeishuClient(account);
+// ============ Schemas ============
 
-  try {
-    const result = await client.bitable.v1.appTableRecord.batchDelete({
-      path: { app_token: appToken, table_id: tableId },
-      data: { records: recordIds },
-    });
+const GetMetaSchema = Type.Object({
+  url: Type.String({
+    description:
+      "Bitable URL. Supports both formats: /base/XXX?table=YYY or /wiki/XXX?table=YYY",
+  }),
+});
 
-    if (result.code === 0) {
-      return {
-        ok: true,
-        data: { deleted: result.data?.records || [] },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
+const ListFieldsSchema = Type.Object({
+  app_token: Type.String({
+    description: "Bitable app token (use feishu_bitable_get_meta to get from URL)",
+  }),
+  table_id: Type.String({ description: "Table ID (from URL: ?table=YYY)" }),
+});
+
+const ListRecordsSchema = Type.Object({
+  app_token: Type.String({
+    description: "Bitable app token (use feishu_bitable_get_meta to get from URL)",
+  }),
+  table_id: Type.String({ description: "Table ID (from URL: ?table=YYY)" }),
+  page_size: Type.Optional(
+    Type.Number({ description: "Number of records per page (1-500, default 100)", minimum: 1, maximum: 500 }),
+  ),
+  page_token: Type.Optional(Type.String({ description: "Pagination token from previous response" })),
+});
+
+const GetRecordSchema = Type.Object({
+  app_token: Type.String({
+    description: "Bitable app token (use feishu_bitable_get_meta to get from URL)",
+  }),
+  table_id: Type.String({ description: "Table ID (from URL: ?table=YYY)" }),
+  record_id: Type.String({ description: "Record ID to retrieve" }),
+});
+
+const CreateRecordSchema = Type.Object({
+  app_token: Type.String({
+    description: "Bitable app token (use feishu_bitable_get_meta to get from URL)",
+  }),
+  table_id: Type.String({ description: "Table ID (from URL: ?table=YYY)" }),
+  fields: Type.Record(Type.String(), Type.Any(), {
+    description:
+      "Field values keyed by field name. Format by type: Text='string', Number=123, SingleSelect='Option', MultiSelect=['A','B'], DateTime=timestamp_ms, User=[{id:'ou_xxx'}], URL={text:'Display',link:'https://...'}",
+  }),
+});
+
+const UpdateRecordSchema = Type.Object({
+  app_token: Type.String({
+    description: "Bitable app token (use feishu_bitable_get_meta to get from URL)",
+  }),
+  table_id: Type.String({ description: "Table ID (from URL: ?table=YYY)" }),
+  record_id: Type.String({ description: "Record ID to update" }),
+  fields: Type.Record(Type.String(), Type.Any(), {
+    description: "Field values to update (same format as create_record)",
+  }),
+});
+
+// ============ Tool Registration ============
+
+export function registerFeishuBitableTools(api: OpenClawPluginApi) {
+  const feishuCfg = api.config?.channels?.feishu as FeishuConfig | undefined;
+  if (!feishuCfg?.appId || !feishuCfg?.appSecret) {
+    api.logger.debug?.("feishu_bitable: Feishu credentials not configured, skipping bitable tools");
+    return;
   }
-}
 
-// ==================== 视图管理 ====================
+  const getClient = () => createFeishuClient(feishuCfg);
 
-/** 视图信息 */
-export interface BitableView {
-  viewId: string;
-  viewName: string;
-  viewType: "grid" | "kanban" | "gallery" | "form" | "gantt";
-}
-
-/**
- * 获取视图列表
- */
-export async function listBitableViews(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  tableId: string,
-  options?: {
-    pageSize?: number;
-    pageToken?: string;
-  }
-): Promise<ApiResult<{ views: BitableView[]; pageToken?: string; hasMore?: boolean }>> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appTableView.list({
-      path: { app_token: appToken, table_id: tableId },
-      params: {
-        page_size: options?.pageSize || 100,
-        page_token: options?.pageToken,
+  // Tool 0: feishu_bitable_get_meta (helper to parse URLs)
+  api.registerTool(
+    {
+      name: "feishu_bitable_get_meta",
+      label: "Feishu Bitable Get Meta",
+      description:
+        "Parse a Bitable URL and get app_token, table_id, and table list. Use this first when given a /wiki/ or /base/ URL.",
+      parameters: GetMetaSchema,
+      async execute(_toolCallId, params) {
+        const { url } = params as { url: string };
+        try {
+          const result = await getBitableMeta(getClient(), url);
+          return json(result);
+        } catch (err) {
+          return json({ error: err instanceof Error ? err.message : String(err) });
+        }
       },
-    });
+    },
+    { name: "feishu_bitable_get_meta" },
+  );
 
-    if (result.code === 0) {
-      const views = (result.data?.items || []).map((v: any) => ({
-        viewId: v.view_id,
-        viewName: v.view_name || "",
-        viewType: v.view_type,
-      }));
-
-      return {
-        ok: true,
-        data: {
-          views,
-          pageToken: result.data?.page_token,
-          hasMore: result.data?.has_more,
-        },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * 获取视图详情
- */
-export async function getBitableView(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  tableId: string,
-  viewId: string
-): Promise<ApiResult<BitableView>> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appTableView.get({
-      path: { app_token: appToken, table_id: tableId, view_id: viewId },
-    });
-
-    if (result.code === 0 && result.data?.view) {
-      const v = result.data.view;
-      return {
-        ok: true,
-        data: {
-          viewId: v.view_id!,
-          viewName: v.view_name || "",
-          viewType: v.view_type as any,
-        },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * 创建视图
- */
-export async function createBitableView(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  tableId: string,
-  viewName: string,
-  viewType: "grid" | "kanban" | "gallery" | "form" | "gantt" = "grid"
-): Promise<ApiResult<BitableView>> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appTableView.create({
-      path: { app_token: appToken, table_id: tableId },
-      data: {
-        view_name: viewName,
-        view_type: viewType,
+  // Tool 1: feishu_bitable_list_fields
+  api.registerTool(
+    {
+      name: "feishu_bitable_list_fields",
+      label: "Feishu Bitable List Fields",
+      description: "List all fields (columns) in a Bitable table with their types and properties",
+      parameters: ListFieldsSchema,
+      async execute(_toolCallId, params) {
+        const { app_token, table_id } = params as { app_token: string; table_id: string };
+        try {
+          const result = await listFields(getClient(), app_token, table_id);
+          return json(result);
+        } catch (err) {
+          return json({ error: err instanceof Error ? err.message : String(err) });
+        }
       },
-    });
+    },
+    { name: "feishu_bitable_list_fields" },
+  );
 
-    if (result.code === 0 && result.data?.view) {
-      const v = result.data.view;
-      return {
-        ok: true,
-        data: {
-          viewId: v.view_id!,
-          viewName: v.view_name || viewName,
-          viewType: v.view_type as any,
-        },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * 删除视图
- */
-export async function deleteBitableView(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  tableId: string,
-  viewId: string
-): Promise<ApiResult> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appTableView.delete({
-      path: { app_token: appToken, table_id: tableId, view_id: viewId },
-    });
-
-    if (result.code === 0) {
-      return { ok: true };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-// ==================== 角色管理 ====================
-
-/** 角色信息 */
-export interface BitableRole {
-  roleId: string;
-  roleName: string;
-  tablePerm?: number;
-  recPerm?: number;
-  fieldPerm?: Record<string, number>;
-}
-
-/**
- * 获取角色列表
- */
-export async function listBitableRoles(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  options?: {
-    pageSize?: number;
-    pageToken?: string;
-  }
-): Promise<ApiResult<{ roles: BitableRole[]; pageToken?: string; hasMore?: boolean }>> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appRole.list({
-      path: { app_token: appToken },
-      params: {
-        page_size: options?.pageSize || 100,
-        page_token: options?.pageToken,
+  // Tool 2: feishu_bitable_list_records
+  api.registerTool(
+    {
+      name: "feishu_bitable_list_records",
+      label: "Feishu Bitable List Records",
+      description: "List records (rows) from a Bitable table with pagination support",
+      parameters: ListRecordsSchema,
+      async execute(_toolCallId, params) {
+        const { app_token, table_id, page_size, page_token } = params as {
+          app_token: string;
+          table_id: string;
+          page_size?: number;
+          page_token?: string;
+        };
+        try {
+          const result = await listRecords(getClient(), app_token, table_id, page_size, page_token);
+          return json(result);
+        } catch (err) {
+          return json({ error: err instanceof Error ? err.message : String(err) });
+        }
       },
-    });
+    },
+    { name: "feishu_bitable_list_records" },
+  );
 
-    if (result.code === 0) {
-      const roles = (result.data?.items || []).map((r: any) => ({
-        roleId: r.role_id,
-        roleName: r.role_name || "",
-        tablePerm: r.table_perm,
-        recPerm: r.rec_perm,
-      }));
-
-      return {
-        ok: true,
-        data: {
-          roles,
-          pageToken: result.data?.page_token,
-          hasMore: result.data?.has_more,
-        },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * 创建角色
- */
-export async function createBitableRole(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  roleName: string,
-  options?: {
-    tablePerm?: number; // 1: 可读, 2: 可编辑, 4: 可管理
-    recPerm?: number;
-  }
-): Promise<ApiResult<BitableRole>> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appRole.create({
-      path: { app_token: appToken },
-      data: {
-        role_name: roleName,
-        table_perm: options?.tablePerm,
-        rec_perm: options?.recPerm,
+  // Tool 3: feishu_bitable_get_record
+  api.registerTool(
+    {
+      name: "feishu_bitable_get_record",
+      label: "Feishu Bitable Get Record",
+      description: "Get a single record by ID from a Bitable table",
+      parameters: GetRecordSchema,
+      async execute(_toolCallId, params) {
+        const { app_token, table_id, record_id } = params as {
+          app_token: string;
+          table_id: string;
+          record_id: string;
+        };
+        try {
+          const result = await getRecord(getClient(), app_token, table_id, record_id);
+          return json(result);
+        } catch (err) {
+          return json({ error: err instanceof Error ? err.message : String(err) });
+        }
       },
-    });
+    },
+    { name: "feishu_bitable_get_record" },
+  );
 
-    if (result.code === 0 && result.data?.role) {
-      const r = result.data.role;
-      return {
-        ok: true,
-        data: {
-          roleId: r.role_id!,
-          roleName: r.role_name || roleName,
-          tablePerm: r.table_perm,
-          recPerm: r.rec_perm,
-        },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * 更新角色
- */
-export async function updateBitableRole(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  roleId: string,
-  updates: {
-    roleName?: string;
-    tablePerm?: number;
-    recPerm?: number;
-  }
-): Promise<ApiResult> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appRole.update({
-      path: { app_token: appToken, role_id: roleId },
-      data: {
-        role_name: updates.roleName,
-        table_perm: updates.tablePerm,
-        rec_perm: updates.recPerm,
+  // Tool 4: feishu_bitable_create_record
+  api.registerTool(
+    {
+      name: "feishu_bitable_create_record",
+      label: "Feishu Bitable Create Record",
+      description: "Create a new record (row) in a Bitable table",
+      parameters: CreateRecordSchema,
+      async execute(_toolCallId, params) {
+        const { app_token, table_id, fields } = params as {
+          app_token: string;
+          table_id: string;
+          fields: Record<string, unknown>;
+        };
+        try {
+          const result = await createRecord(getClient(), app_token, table_id, fields);
+          return json(result);
+        } catch (err) {
+          return json({ error: err instanceof Error ? err.message : String(err) });
+        }
       },
-    });
+    },
+    { name: "feishu_bitable_create_record" },
+  );
 
-    if (result.code === 0) {
-      return { ok: true };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * 删除角色
- */
-export async function deleteBitableRole(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  roleId: string
-): Promise<ApiResult> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appRole.delete({
-      path: { app_token: appToken, role_id: roleId },
-    });
-
-    if (result.code === 0) {
-      return { ok: true };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * 获取角色成员列表
- */
-export async function listBitableRoleMembers(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  roleId: string,
-  options?: {
-    pageSize?: number;
-    pageToken?: string;
-  }
-): Promise<
-  ApiResult<{ members: Array<{ memberId: string; memberType: string }>; pageToken?: string }>
-> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appRoleMember.list({
-      path: { app_token: appToken, role_id: roleId },
-      params: {
-        page_size: options?.pageSize || 100,
-        page_token: options?.pageToken,
+  // Tool 5: feishu_bitable_update_record
+  api.registerTool(
+    {
+      name: "feishu_bitable_update_record",
+      label: "Feishu Bitable Update Record",
+      description: "Update an existing record (row) in a Bitable table",
+      parameters: UpdateRecordSchema,
+      async execute(_toolCallId, params) {
+        const { app_token, table_id, record_id, fields } = params as {
+          app_token: string;
+          table_id: string;
+          record_id: string;
+          fields: Record<string, unknown>;
+        };
+        try {
+          const result = await updateRecord(getClient(), app_token, table_id, record_id, fields);
+          return json(result);
+        } catch (err) {
+          return json({ error: err instanceof Error ? err.message : String(err) });
+        }
       },
-    });
+    },
+    { name: "feishu_bitable_update_record" },
+  );
 
-    if (result.code === 0) {
-      const members = (result.data?.items || []).map((m: any) => ({
-        memberId: m.member_id,
-        memberType: m.member_type,
-      }));
-
-      return {
-        ok: true,
-        data: {
-          members,
-          pageToken: result.data?.page_token,
-        },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * 添加角色成员
- */
-export async function addBitableRoleMember(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  roleId: string,
-  memberId: string,
-  memberType: "user" | "chat" | "department" = "user"
-): Promise<ApiResult> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appRoleMember.create({
-      path: { app_token: appToken, role_id: roleId },
-      data: {
-        member_id: memberId,
-        member_type: memberType,
-      },
-    });
-
-    if (result.code === 0) {
-      return { ok: true };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * 移除角色成员
- */
-export async function removeBitableRoleMember(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  roleId: string,
-  memberId: string,
-  memberType: "user" | "chat" | "department" = "user"
-): Promise<ApiResult> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appRoleMember.delete({
-      path: { app_token: appToken, role_id: roleId, member_id: memberId },
-      params: { member_type: memberType },
-    });
-
-    if (result.code === 0) {
-      return { ok: true };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-// ==================== 自动化 ====================
-
-/** 自动化规则信息 */
-export interface BitableWorkflow {
-  workflowId: string;
-  workflowName: string;
-  enabled: boolean;
-}
-
-/**
- * 获取自动化规则列表
- */
-export async function listBitableWorkflows(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  tableId: string,
-  options?: {
-    pageSize?: number;
-    pageToken?: string;
-  }
-): Promise<ApiResult<{ workflows: BitableWorkflow[]; pageToken?: string }>> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appWorkflow.list({
-      path: { app_token: appToken, table_id: tableId },
-      params: {
-        page_size: options?.pageSize || 100,
-        page_token: options?.pageToken,
-      },
-    } as any);
-
-    if (result.code === 0) {
-      const workflows = (result.data?.items || []).map((w: any) => ({
-        workflowId: w.workflow_id,
-        workflowName: w.workflow_name || "",
-        enabled: w.enabled || false,
-      }));
-
-      return {
-        ok: true,
-        data: {
-          workflows,
-          pageToken: result.data?.page_token,
-        },
-      };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * 启用/禁用自动化规则
- */
-export async function toggleBitableWorkflow(
-  account: ResolvedFeishuAccount,
-  appToken: string,
-  tableId: string,
-  workflowId: string,
-  enabled: boolean
-): Promise<ApiResult> {
-  const client = getFeishuClient(account);
-
-  try {
-    const result = await client.bitable.v1.appWorkflow.update({
-      path: { app_token: appToken, table_id: tableId, workflow_id: workflowId },
-      data: { enabled },
-    } as any);
-
-    if (result.code === 0) {
-      return { ok: true };
-    }
-    return { ok: false, error: result.msg };
-  } catch (error) {
-    return { ok: false, error: String(error) };
-  }
+  api.logger.info?.(`feishu_bitable: Registered 6 bitable tools`);
 }

@@ -1,429 +1,463 @@
-# OpenClaw Feishu Plugin / 飞书通道插件
+# clawd-feishu
+
+Feishu/Lark (飞书) channel plugin for [OpenClaw](https://github.com/openclaw/openclaw).
 
 [English](#english) | [中文](#中文)
-
-> ✅ **Compatible with:** OpenClaw, Clawdbot, Moltbot
->
-> ✅ **兼容版本：** OpenClaw、Clawdbot、Moltbot
 
 ---
 
 ## English
 
-A comprehensive Feishu (Lark) channel plugin for OpenClaw with support for messaging, cloud documents, spreadsheets, databases, calendar, and tasks.
-
-### ✨ Features
-
-| Category      | Features                                                                            |
-| ------------- | ----------------------------------------------------------------------------------- |
-| **Messaging** | Text, Rich Text, Cards, Images, Files, Voice, Quote, Forward, Urgent                |
-| **Chat**      | Create/manage groups, Members, Managers, Tabs, Top notice, Announcement             |
-| **Documents** | Create, Read, Update, Delete blocks, Insert at position, Markdown support           |
-| **Bitable**   | Apps/tables, Fields, Records, Views, Roles, Members, Automation                     |
-| **Sheets**    | Create/read/write cells, Row/column operations, Styles, Merge, Sort, Filter, Freeze |
-| **Calendar**  | Events, Attendees, Free/busy, Subscribe, ACL permissions                            |
-| **Tasks**     | Tasks, Lists, Reminders, Members, Dependencies, Attachments                         |
-| **Wiki**      | Spaces, Nodes (pages), Members management, Move/copy nodes                          |
-| **Search**    | Messages, Documents, Drive files, Universal search                                  |
-| **AI**        | OCR (image text recognition), Speech-to-Text, Translation, Language detection       |
-| **Mail**      | Send/read emails, Folders, Mail groups, Public mailboxes, Members management        |
-| **Contact**   | Users, Departments, User groups, Members, Batch operations, Search                  |
-| **Approval**  | Create/query approvals, Approve/reject/transfer tasks, Comments, CC, Add sign       |
-| **Lingo**     | Entity CRUD, Search, Match, Highlight, Classifications, Repos, Drafts               |
-
-### 📦 Quick Install
+### Installation
 
 ```bash
-# OpenClaw (latest)
-openclaw plugins install https://github.com/gcmsg/openclaw-feishu
-
-# Clawdbot
-clawdbot plugins install https://github.com/gcmsg/openclaw-feishu
+openclaw plugins install @m1heng-clawd/feishu
 ```
 
-### 🛠️ Agent Tool Architecture
+### Upgrade
 
-This plugin provides a dedicated **`feishu` agent tool** for Feishu-specific operations (cards, documents, bitable, etc.).
-
-**Why a separate tool?**
-
-The core `message` tool only supports standard messaging actions (`send`, `react`, `delete`, etc.). Feishu's rich features (card messages, cloud documents, bitable, calendar, etc.) require a dedicated tool with its own action schema.
-
-**How it works:**
-
-```
-message tool  →  Basic messaging (send text, react)
-feishu tool   →  Feishu-specific (send_card, doc_create, bitable_records, etc.)
+```bash
+openclaw plugins update feishu
 ```
 
-**After installation**, the `feishu` tool is automatically available to AI agents. No additional configuration needed.
+### Configuration
 
-**Example usage in AI conversation:**
-
-```
-User: 发一个卡片消息到群里
-AI: [calls feishu tool with action="send_card", target="chat_id", card={...}]
-
-User: 创建一个文档
-AI: [calls feishu tool with action="doc_create", title="新文档"]
-
-User: 查询多维表格的记录
-AI: [calls feishu tool with action="bitable_records", appToken="xxx", tableId="xxx"]
-```
-
-### ⚙️ Configuration
-
-1. Create app at [Feishu Open Platform](https://open.feishu.cn/app)
-2. Get **App ID** and **App Secret**
-3. Enable "Bot" capability with "Long Connection" mode
-4. Add required permissions (see below)
-5. Run `openclaw onboard feishu` or `clawdbot onboard feishu`
+1. Create a self-built app on [Feishu Open Platform](https://open.feishu.cn)
+2. Get your App ID and App Secret from the Credentials page
+3. Enable required permissions (see below)
+4. **Configure event subscriptions** (see below) ⚠️ Important
+5. Configure the plugin:
 
 #### Required Permissions
 
-| Feature   | Permissions                                                                   |
-| --------- | ----------------------------------------------------------------------------- |
-| Messaging | `im:message`, `im:chat`                                                       |
-| Voice     | `im:message:speech_to_text`                                                   |
-| Documents | `docx:document`                                                               |
-| Wiki      | `wiki:wiki`                                                                   |
-| Search    | `search:message`, `suite:docs_search`                                         |
-| AI        | `optical_char_recognition:image`, `speech_to_text:speech`, `translation:text` |
-| Drive     | `drive:drive`                                                                 |
-| Bitable   | `bitable:app`                                                                 |
-| Sheets    | `sheets:spreadsheet`                                                          |
-| Calendar  | `calendar:calendar`                                                           |
-| Tasks     | `task:task`                                                                   |
+| Permission | Scope | Description |
+|------------|-------|-------------|
+| `im:message` | Messaging | Send and receive messages |
+| `im:message.p2p_msg:readonly` | DM | Read direct messages to bot |
+| `im:message.group_at_msg:readonly` | Group | Receive @mention messages in groups |
+| `im:message:send_as_bot` | Send | Send messages as the bot |
+| `im:resource` | Media | Upload and download images/files |
+
+#### Optional Permissions
+
+| Permission | Scope | Description |
+|------------|-------|-------------|
+| `contact:user.base:readonly` | User info | Get basic user info (required to resolve sender display names for speaker attribution) |
+| `im:message.group_msg` | Group | Read all group messages (sensitive) |
+| `im:message:readonly` | Read | Get message history |
+| `im:message:update` | Edit | Update/edit sent messages |
+| `im:message:recall` | Recall | Recall sent messages |
+| `im:message.reactions:read` | Reactions | View message reactions |
+
+#### Tool Permissions
+
+**Read-only** (minimum required):
+
+| Permission | Tool | Description |
+|------------|------|-------------|
+| `docx:document:readonly` | `feishu_doc` | Read documents |
+| `drive:drive:readonly` | `feishu_drive` | List folders, get file info |
+| `wiki:wiki:readonly` | `feishu_wiki` | List spaces, list nodes, get node info, search |
+| `bitable:app:readonly` | `feishu_bitable` | Read bitable records and fields |
+
+**Read-write** (optional, for create/edit/delete operations):
+
+| Permission | Tool | Description |
+|------------|------|-------------|
+| `docx:document` | `feishu_doc` | Create/edit documents |
+| `docx:document.block:convert` | `feishu_doc` | Markdown to blocks conversion (required for write/append) |
+| `drive:drive` | `feishu_doc`, `feishu_drive` | Upload images to documents, create folders, move/delete files |
+| `wiki:wiki` | `feishu_wiki` | Create/move/rename wiki nodes |
+| `bitable:app` | `feishu_bitable` | Create/update bitable records |
+
+#### Drive Access ⚠️
+
+> **Important:** Bots don't have their own "My Space" (root folder). Bots can only access files/folders that have been **shared with them**.
+
+To let the bot manage files:
+1. Create a folder in your Feishu Drive
+2. Right-click the folder → **Share** → search for your bot name
+3. Grant appropriate permission (view/edit)
+
+Without this step, `feishu_drive` operations like `create_folder` will fail because the bot has no root folder to create in.
+
+#### Wiki Space Access ⚠️
+
+> **Important:** API permissions alone are not enough for wiki access. You must also add the bot to each wiki space.
+
+1. Open the wiki space you want the bot to access
+2. Click **Settings** (gear icon) → **Members**
+3. Click **Add Member** → search for your bot name
+4. Select appropriate permission level (view/edit)
+
+Without this step, `feishu_wiki` will return empty results even with correct API permissions.
+
+Reference: [Wiki FAQ - How to add app to wiki](https://open.feishu.cn/document/server-docs/docs/wiki-v2/wiki-qa#a40ad4ca)
+
+#### Bitable Access ⚠️
+
+> **Important:** Like other resources, the bot can only access bitables that have been **shared with it**.
+
+To let the bot access a bitable:
+1. Open the bitable you want the bot to access
+2. Click **Share** button → search for your bot name
+3. Grant appropriate permission (view/edit)
+
+The `feishu_bitable` tools support both URL formats:
+- `/base/XXX?table=YYY` - Standard bitable URL
+- `/wiki/XXX?table=YYY` - Bitable embedded in wiki (auto-converts to app_token)
+
+#### Event Subscriptions ⚠️
+
+> **This is the most commonly missed configuration!** If the bot can send messages but cannot receive them, check this section.
+
+In the Feishu Open Platform console, go to **Events & Callbacks**:
+
+1. **Event configuration**: Select **Long connection** (recommended)
+2. **Add event subscriptions**:
+
+| Event | Description |
+|-------|-------------|
+| `im.message.receive_v1` | Receive messages (required) |
+| `im.message.message_read_v1` | Message read receipts |
+| `im.chat.member.bot.added_v1` | Bot added to group |
+| `im.chat.member.bot.deleted_v1` | Bot removed from group |
+
+3. Ensure the event permissions are approved
+
+```bash
+openclaw config set channels.feishu.appId "cli_xxxxx"
+openclaw config set channels.feishu.appSecret "your_app_secret"
+openclaw config set channels.feishu.enabled true
+```
+
+### Configuration Options
+
+```yaml
+channels:
+  feishu:
+    enabled: true
+    appId: "cli_xxxxx"
+    appSecret: "secret"
+    # Domain: "feishu" (China) or "lark" (International)
+    domain: "feishu"
+    # Connection mode: "websocket" (recommended) or "webhook"
+    connectionMode: "websocket"
+    # DM policy: "pairing" | "open" | "allowlist"
+    dmPolicy: "pairing"
+    # Group policy: "open" | "allowlist" | "disabled"
+    groupPolicy: "allowlist"
+    # Require @mention in groups
+    requireMention: true
+    # Max media size in MB (default: 30)
+    mediaMaxMb: 30
+    # Render mode for bot replies: "auto" | "raw" | "card"
+    renderMode: "auto"
+```
+
+#### Render Mode
+
+| Mode | Description |
+|------|-------------|
+| `auto` | (Default) Automatically detect: use card for messages with code blocks or tables, plain text otherwise. |
+| `raw` | Always send replies as plain text. Markdown tables are converted to ASCII. |
+| `card` | Always send replies as interactive cards with full markdown rendering (syntax highlighting, tables, clickable links). |
+
+### Features
+
+- WebSocket and Webhook connection modes
+- Direct messages and group chats
+- Message replies and quoted message context
+- **Inbound media support**: AI can see images, read files (PDF, Excel, etc.), and process rich text with embedded images
+- Image and file uploads (outbound)
+- Typing indicator (via emoji reactions)
+- Pairing flow for DM approval
+- User and group directory lookup
+- **Card render mode**: Optional markdown rendering with syntax highlighting
+- **Document tools**: Read, create, and write Feishu documents with markdown (tables not supported due to API limitations)
+- **Wiki tools**: Navigate knowledge bases, list spaces, get node details, search, create/move/rename nodes
+- **Drive tools**: List folders, get file info, create folders, move/delete files
+- **Bitable tools**: Read/write bitable (多维表格) records, supports both `/base/` and `/wiki/` URLs
+- **@mention forwarding**: When you @mention someone in your message, the bot's reply will automatically @mention them too
+- **Permission error notification**: When the bot encounters a Feishu API permission error, it automatically notifies the user with the permission grant URL
+
+#### @Mention Forwarding
+
+When you want the bot to @mention someone in its reply, simply @mention them in your message:
+
+- **In DM**: `@张三 say hello` → Bot replies with `@张三 Hello!`
+- **In Group**: `@bot @张三 say hello` → Bot replies with `@张三 Hello!`
+
+The bot automatically detects @mentions in your message and includes them in its reply. No extra permissions required beyond the standard messaging permissions.
+
+### FAQ
+
+#### Bot cannot receive messages
+
+Check the following:
+1. Have you configured **event subscriptions**? (See Event Subscriptions section)
+2. Is the event configuration set to **long connection**?
+3. Did you add the `im.message.receive_v1` event?
+4. Are the permissions approved?
+
+#### 403 error when sending messages
+
+Ensure `im:message:send_as_bot` permission is approved.
+
+#### How to clear history / start new conversation
+
+Send `/new` command in the chat.
+
+#### Why is the output not streaming
+
+Feishu API has rate limits. Streaming updates can easily trigger throttling. We use complete-then-send approach for stability.
+
+#### Windows install error `spawn npm ENOENT`
+
+If `openclaw plugins install` fails, install manually:
+
+```bash
+# 1. Download the package
+curl -O https://registry.npmjs.org/@m1heng-clawd/feishu/-/feishu-0.1.3.tgz
+
+# 2. Install from local file
+openclaw plugins install ./feishu-0.1.3.tgz
+```
+
+#### Cannot find the bot in Feishu
+
+1. Ensure the app is published (at least to test version)
+2. Search for the bot name in Feishu search box
+3. Check if your account is in the app's availability scope
 
 ---
 
 ## 中文
 
-OpenClaw 飞书通道插件，支持消息收发、云文档、多维表格、电子表格、日历、任务等全面功能。
-
-### ✨ 功能特性
-
-| 类别         | 功能                                                    |
-| ------------ | ------------------------------------------------------- |
-| **消息**     | 文本、富文本、卡片、图片、文件、语音转文字、引用回复    |
-| **云文档**   | 创建、读取、更新、删除块、指定位置插入、Markdown 支持   |
-| **多维表格** | 创建应用/数据表、字段管理、记录 CRUD、批量操作          |
-| **电子表格** | 创建/读写单元格、行列操作、样式、合并、排序、筛选、冻结 |
-| **日历**     | 创建日程、列出/搜索日程、参与者管理、忙闲查询           |
-| **任务**     | 创建/完成任务、任务列表、提醒                           |
-
-### 📦 快速安装
+### 安装
 
 ```bash
-# OpenClaw（最新版）
-openclaw plugins install https://github.com/gcmsg/openclaw-feishu
-
-# Clawdbot
-clawdbot plugins install https://github.com/gcmsg/openclaw-feishu
+openclaw plugins install @m1heng-clawd/feishu
 ```
 
-### 🛠️ Agent 工具架构
-
-本插件提供独立的 **`feishu` Agent 工具**，用于飞书特有的功能（卡片消息、云文档、多维表格等）。
-
-**为什么需要独立工具？**
-
-核心 `message` 工具只支持标准消息操作（`send`、`react`、`delete` 等）。飞书丰富的功能（卡片消息、云文档、多维表格、日历等）需要专用工具和独立的 action schema。
-
-**工作原理：**
-
-```
-message 工具  →  基础消息（发送文本、表情回复）
-feishu 工具   →  飞书专属（send_card、doc_create、bitable_records 等 200+ 操作）
-```
-
-**安装后**，`feishu` 工具自动对 AI 助手可用，无需额外配置。
-
-**AI 对话中的使用示例：**
-
-```
-用户: 发一个卡片消息到群里
-AI: [调用 feishu 工具，action="send_card", target="chat_id", card={...}]
-
-用户: 创建一个文档
-AI: [调用 feishu 工具，action="doc_create", title="新文档"]
-
-用户: 查询多维表格的记录
-AI: [调用 feishu 工具，action="bitable_records", appToken="xxx", tableId="xxx"]
-```
-
-### ⚙️ 配置步骤
-
-1. 在 [飞书开放平台](https://open.feishu.cn/app) 创建应用
-2. 获取 **App ID** 和 **App Secret**
-3. 开启「机器人」能力，消息接收方式选择「使用长连接接收消息」
-4. 添加所需权限（见下表）
-5. 运行 `openclaw onboard feishu` 或 `clawdbot onboard feishu`
-
-#### 所需权限
-
-| 功能       | 权限                        |
-| ---------- | --------------------------- |
-| 消息       | `im:message`, `im:chat`     |
-| 语音转文字 | `im:message:speech_to_text` |
-| 云文档     | `docx:document`             |
-| 云空间     | `drive:drive`               |
-| 多维表格   | `bitable:app`               |
-| 电子表格   | `sheets:spreadsheet`        |
-| 日历       | `calendar:calendar`         |
-| 任务       | `task:task`                 |
-
----
-
-## 📖 API Reference / API 参考
-
-### 消息 / Messaging
-
-| Action       | Params               | Description  |
-| ------------ | -------------------- | ------------ |
-| `send`       | `target`, `message`  | 发送文本消息 |
-| `send_card`  | `target`, `card`     | 发送卡片消息 |
-| `send_image` | `target`, `filePath` | 发送图片     |
-| `send_file`  | `target`, `filePath` | 发送文件     |
-
-### 云文档 / Documents
-
-| Action              | Params                                      | Description            |
-| ------------------- | ------------------------------------------- | ---------------------- |
-| `doc_create`        | `title`, `folderId?`                        | 创建文档               |
-| `doc_get`           | `documentId`                                | 获取文档信息           |
-| `doc_read`          | `documentId`                                | 读取文档纯文本         |
-| `doc_structure`     | `documentId`                                | 获取文档结构（块列表） |
-| `doc_append`        | `documentId`, `content`                     | 追加文本               |
-| `doc_append_md`     | `documentId`, `markdown`                    | 追加 Markdown          |
-| `doc_prepend`       | `documentId`, `content`                     | 在开头插入             |
-| `doc_insert_after`  | `documentId`, `blockId`, `content`          | 在指定块后插入         |
-| `doc_block_get`     | `documentId`, `blockId`                     | 获取指定块             |
-| `doc_block_update`  | `documentId`, `blockId`, `text`, `checked?` | 更新块内容             |
-| `doc_block_delete`  | `documentId`, `blockId`                     | 删除块                 |
-| `doc_blocks_delete` | `documentId`, `blockIds`                    | 批量删除块             |
-
-### 多维表格 / Bitable
-
-| Action                   | Params                                          | Description  |
-| ------------------------ | ----------------------------------------------- | ------------ |
-| `bitable_create`         | `name`, `folderId?`                             | 创建多维表格 |
-| `bitable_get`            | `appToken`                                      | 获取表格信息 |
-| `bitable_tables`         | `appToken`                                      | 列出数据表   |
-| `bitable_table_create`   | `appToken`, `name`                              | 创建数据表   |
-| `bitable_fields`         | `appToken`, `tableId`                           | 列出字段     |
-| `bitable_field_create`   | `appToken`, `tableId`, `fieldName`, `fieldType` | 创建字段     |
-| `bitable_records`        | `appToken`, `tableId`, `pageSize?`              | 查询记录     |
-| `bitable_record_get`     | `appToken`, `tableId`, `recordId`               | 获取单条记录 |
-| `bitable_record_create`  | `appToken`, `tableId`, `fields`                 | 创建记录     |
-| `bitable_record_update`  | `appToken`, `tableId`, `recordId`, `fields`     | 更新记录     |
-| `bitable_record_delete`  | `appToken`, `tableId`, `recordId`               | 删除记录     |
-| `bitable_records_delete` | `appToken`, `tableId`, `recordIds`              | 批量删除记录 |
-
-### 电子表格 / Sheets
-
-| Action                | Params                                                        | Description    |
-| --------------------- | ------------------------------------------------------------- | -------------- |
-| `sheet_create`        | `title`, `folderId?`                                          | 创建电子表格   |
-| `sheet_get`           | `spreadsheetToken`                                            | 获取表格信息   |
-| `sheet_list`          | `spreadsheetToken`                                            | 列出工作表     |
-| `sheet_info`          | `spreadsheetToken`, `sheetId`                                 | 获取工作表信息 |
-| `sheet_read`          | `spreadsheetToken`, `range`                                   | 读取单元格     |
-| `sheet_write`         | `spreadsheetToken`, `range`, `values`                         | 写入单元格     |
-| `sheet_append`        | `spreadsheetToken`, `range`, `values`                         | 追加行数据     |
-| `sheet_insert_rows`   | `spreadsheetToken`, `sheetId`, `startIndex`, `count`          | 插入行         |
-| `sheet_delete_rows`   | `spreadsheetToken`, `sheetId`, `startIndex`, `count`          | 删除行         |
-| `sheet_insert_cols`   | `spreadsheetToken`, `sheetId`, `startIndex`, `count`          | 插入列         |
-| `sheet_delete_cols`   | `spreadsheetToken`, `sheetId`, `startIndex`, `count`          | 删除列         |
-| `sheet_style`         | `spreadsheetToken`, `range`, `style`                          | 设置样式       |
-| `sheet_merge`         | `spreadsheetToken`, `range`, `mergeType?`                     | 合并单元格     |
-| `sheet_unmerge`       | `spreadsheetToken`, `range`                                   | 拆分单元格     |
-| `sheet_sort`          | `spreadsheetToken`, `sheetId`, `range`, `sortSpecs`           | 排序           |
-| `sheet_freeze`        | `spreadsheetToken`, `sheetId`, `frozenRows`, `frozenColumns`  | 冻结行列       |
-| `sheet_find_replace`  | `spreadsheetToken`, `sheetId`, `find`, `replace`              | 查找替换       |
-| `sheet_filter_create` | `spreadsheetToken`, `sheetId`, `range`                        | 创建筛选       |
-| `sheet_filter_delete` | `spreadsheetToken`, `sheetId`                                 | 删除筛选       |
-| `sheet_col_width`     | `spreadsheetToken`, `sheetId`, `startCol`, `endCol`, `width`  | 设置列宽       |
-| `sheet_row_height`    | `spreadsheetToken`, `sheetId`, `startRow`, `endRow`, `height` | 设置行高       |
-| `sheet_add`           | `spreadsheetToken`, `title`, `index?`                         | 添加工作表     |
-| `sheet_delete`        | `spreadsheetToken`, `sheetId`                                 | 删除工作表     |
-| `sheet_copy`          | `spreadsheetToken`, `sourceSheetId`, `targetTitle?`           | 复制工作表     |
-
-### 日历 / Calendar
-
-| Action             | Params                                                                       | Description  |
-| ------------------ | ---------------------------------------------------------------------------- | ------------ |
-| `cal_list`         | -                                                                            | 列出日历     |
-| `cal_primary`      | -                                                                            | 获取主日历   |
-| `cal_create`       | `summary`, `description?`                                                    | 创建日历     |
-| `cal_events`       | `calendarId`, `startTime?`, `endTime?`                                       | 列出日程     |
-| `cal_event_get`    | `calendarId`, `eventId`                                                      | 获取日程详情 |
-| `cal_event_create` | `calendarId`, `summary`, `startTime`, `endTime`, `description?`, `location?` | 创建日程     |
-| `cal_event_update` | `calendarId`, `eventId`, `summary?`, `startTime?`, `endTime?`                | 更新日程     |
-| `cal_event_delete` | `calendarId`, `eventId`                                                      | 删除日程     |
-| `cal_event_search` | `calendarId`, `query`                                                        | 搜索日程     |
-| `cal_attendees`    | `calendarId`, `eventId`                                                      | 获取参与者   |
-| `cal_attendee_add` | `calendarId`, `eventId`, `userIds`                                           | 添加参与者   |
-| `cal_freebusy`     | `userIds`, `startTime`, `endTime`                                            | 查询忙闲状态 |
-
-**支持自然语言时间：** `今天 14:30`、`明天 10:00`、`下周一 9:00`
-
-### 任务 / Tasks
-
-| Action                 | Params                                       | Description      |
-| ---------------------- | -------------------------------------------- | ---------------- |
-| `task_create`          | `summary`, `due?`, `description?`            | 创建任务         |
-| `task_get`             | `taskId`                                     | 获取任务详情     |
-| `task_update`          | `taskId`, `summary?`, `due?`, `description?` | 更新任务         |
-| `task_delete`          | `taskId`                                     | 删除任务         |
-| `task_complete`        | `taskId`                                     | 完成任务         |
-| `task_uncomplete`      | `taskId`                                     | 取消完成         |
-| `task_list`            | `tasklistId?`, `completed?`                  | 列出任务         |
-| `tasklist_create`      | `name`                                       | 创建任务列表     |
-| `tasklist_get`         | `tasklistId`                                 | 获取任务列表详情 |
-| `tasklist_list`        | -                                            | 列出所有任务列表 |
-| `tasklist_delete`      | `tasklistId`                                 | 删除任务列表     |
-| `tasklist_add_task`    | `tasklistId`, `taskId`                       | 添加任务到列表   |
-| `tasklist_remove_task` | `tasklistId`, `taskId`                       | 从列表移除任务   |
-| `task_reminder_add`    | `taskId`, `minutes`                          | 添加任务提醒     |
-
-**支持自然语言截止时间：** `明天`、`3天后`、`下周五`
-
-### 云空间 / Drive
-
-| Action          | Params                    | Description    |
-| --------------- | ------------------------- | -------------- |
-| `folder_create` | `name`, `parentToken?`    | 创建文件夹     |
-| `folder_list`   | `folderToken`             | 列出文件夹内容 |
-| `file_upload`   | `filePath`, `folderToken` | 上传文件       |
-| `file_download` | `fileToken`, `savePath`   | 下载文件       |
-| `file_search`   | `query`                   | 搜索文件       |
-
-### 知识库 / Wiki
-
-| Action               | Params                                                         | Description  |
-| -------------------- | -------------------------------------------------------------- | ------------ |
-| `wiki_spaces`        | -                                                              | 列出知识空间 |
-| `wiki_space_get`     | `spaceId`                                                      | 获取知识空间 |
-| `wiki_space_create`  | `name`, `description?`, `visibility?`                          | 创建知识空间 |
-| `wiki_nodes`         | `spaceId`, `parentNodeToken?`                                  | 列出节点     |
-| `wiki_node_get`      | `nodeToken`                                                    | 获取节点详情 |
-| `wiki_node_create`   | `spaceId`, `objType`, `parentNodeToken?`, `title?`             | 创建节点     |
-| `wiki_node_rename`   | `spaceId`, `nodeToken`, `title`                                | 重命名节点   |
-| `wiki_node_move`     | `spaceId`, `nodeToken`, `targetParentToken?`, `targetSpaceId?` | 移动节点     |
-| `wiki_node_copy`     | `spaceId`, `nodeToken`, `targetParentToken?`, `title?`         | 复制节点     |
-| `wiki_members`       | `spaceId`                                                      | 列出成员     |
-| `wiki_member_add`    | `spaceId`, `memberId`, `memberType`, `memberRole?`             | 添加成员     |
-| `wiki_member_remove` | `spaceId`, `memberId`, `memberType`                            | 移除成员     |
-
-**节点类型 (objType):** `docx`, `doc`, `sheet`, `bitable`, `mindnote`, `slides`
-
-### 搜索 / Search
-
-| Action            | Params                                       | Description    |
-| ----------------- | -------------------------------------------- | -------------- |
-| `search_messages` | `query`, `chatId?`, `startTime?`, `endTime?` | 搜索消息       |
-| `search_docs`     | `query`, `docTypes?`                         | 搜索云文档     |
-| `search_files`    | `query`, `folderToken?`                      | 搜索云空间文件 |
-| `search_all`      | `query`, `types?`                            | 综合搜索       |
-
-**搜索类型 (types):** `message`, `doc`, `app`
-
-### AI 能力 / AI Capabilities
-
-| Action               | Params                              | Description    |
-| -------------------- | ----------------------------------- | -------------- |
-| `ai_ocr`             | `image`                             | 图片文字识别   |
-| `ai_speech_to_text`  | `audio`, `format?`                  | 语音转文字     |
-| `ai_translate`       | `text`, `targetLang`, `sourceLang?` | 翻译文本       |
-| `ai_detect_language` | `text`                              | 检测文本语言   |
-| `ai_languages`       | -                                   | 获取支持的语言 |
-
-**支持的语言:** `zh`, `zh-Hant`, `en`, `ja`, `ko`, `fr`, `de`, `es`, `it`, `pt`, `ru`, `ar`, `th`, `vi`, `id`
-
-**音频格式:** `pcm`, `wav`, `ogg`, `speex`, `mp3`, `silk`
-
----
-
-## 🏗️ Project Structure / 项目结构
-
-```
-openclaw-feishu/
-├── index.ts              # Plugin entry / 插件入口
-├── clawdbot.plugin.json  # Plugin manifest / 插件配置
-├── src/
-│   ├── channel.ts        # Channel definition / 通道定义
-│   ├── agent-tools.ts    # Feishu agent tool / 飞书 Agent 工具
-│   ├── client.ts         # Messaging API / 消息 API
-│   ├── document.ts       # Document API / 云文档 API
-│   ├── bitable.ts        # Bitable API / 多维表格 API
-│   ├── sheets.ts         # Sheets API / 电子表格 API
-│   ├── calendar.ts       # Calendar API / 日历 API
-│   ├── task.ts           # Task API / 任务 API
-│   ├── wiki.ts           # Wiki API / 知识库 API
-│   ├── search.ts         # Search API / 搜索 API
-│   ├── ai.ts             # AI API / AI 能力 API
-│   ├── space.ts          # Drive API / 云空间 API
-│   ├── gateway.ts        # WebSocket gateway / 长连接网关
-│   ├── markdown.ts       # Markdown converter / Markdown 转换
-│   ├── compat.ts         # SDK compatibility / SDK 兼容层
-│   ├── runtime.ts        # Runtime / 运行时
-│   └── types.ts          # Type definitions / 类型定义
-├── test/                 # Unit tests / 单元测试
-│   ├── setup.ts          # Test setup / 测试配置
-│   ├── client.test.ts
-│   ├── document.test.ts
-│   ├── bitable.test.ts
-│   ├── sheets.test.ts
-│   ├── calendar.test.ts
-│   ├── task.test.ts
-│   ├── wiki.test.ts
-│   ├── search.test.ts
-│   └── ai.test.ts
-└── docs/
-    └── SDK_CAPABILITIES.md  # SDK analysis / SDK 能力分析
-```
-
----
-
-## 🧪 Testing / 测试
+### 升级
 
 ```bash
-# Run all tests
-npm test
-
-# Run with coverage
-npm test -- --coverage
-
-# Run specific test file
-npm test -- test/calendar.test.ts
+openclaw plugins update feishu
 ```
 
-**Test Coverage:**
+### 配置
 
-- 110+ test cases
-- Client, Document, Bitable, Sheets, Calendar, Task modules
+1. 在 [飞书开放平台](https://open.feishu.cn) 创建自建应用
+2. 在凭证页面获取 App ID 和 App Secret
+3. 开启所需权限（见下方）
+4. **配置事件订阅**（见下方）⚠️ 重要
+5. 配置插件：
+
+#### 必需权限
+
+| 权限 | 范围 | 说明 |
+|------|------|------|
+| `im:message` | 消息 | 发送和接收消息 |
+| `im:message.p2p_msg:readonly` | 私聊 | 读取发给机器人的私聊消息 |
+| `im:message.group_at_msg:readonly` | 群聊 | 接收群内 @机器人 的消息 |
+| `im:message:send_as_bot` | 发送 | 以机器人身份发送消息 |
+| `im:resource` | 媒体 | 上传和下载图片/文件 |
+
+#### 可选权限
+
+| 权限 | 范围 | 说明 |
+|------|------|------|
+| `contact:user.base:readonly` | 用户信息 | 获取用户基本信息（用于解析发送者姓名，避免群聊/私聊把不同人当成同一说话者） |
+| `im:message.group_msg` | 群聊 | 读取所有群消息（敏感） |
+| `im:message:readonly` | 读取 | 获取历史消息 |
+| `im:message:update` | 编辑 | 更新/编辑已发送消息 |
+| `im:message:recall` | 撤回 | 撤回已发送消息 |
+| `im:message.reactions:read` | 表情 | 查看消息表情回复 |
+
+#### 工具权限
+
+**只读权限**（最低要求）：
+
+| 权限 | 工具 | 说明 |
+|------|------|------|
+| `docx:document:readonly` | `feishu_doc` | 读取文档 |
+| `drive:drive:readonly` | `feishu_drive` | 列出文件夹、获取文件信息 |
+| `wiki:wiki:readonly` | `feishu_wiki` | 列出空间、列出节点、获取节点详情、搜索 |
+| `bitable:app:readonly` | `feishu_bitable` | 读取多维表格记录和字段 |
+
+**读写权限**（可选，用于创建/编辑/删除操作）：
+
+| 权限 | 工具 | 说明 |
+|------|------|------|
+| `docx:document` | `feishu_doc` | 创建/编辑文档 |
+| `docx:document.block:convert` | `feishu_doc` | Markdown 转 blocks（write/append 必需） |
+| `drive:drive` | `feishu_doc`, `feishu_drive` | 上传图片到文档、创建文件夹、移动/删除文件 |
+| `wiki:wiki` | `feishu_wiki` | 创建/移动/重命名知识库节点 |
+| `bitable:app` | `feishu_bitable` | 创建/更新多维表格记录 |
+
+#### 云空间访问权限 ⚠️
+
+> **重要：** 机器人没有自己的"我的空间"（根目录）。机器人只能访问**被分享给它的文件/文件夹**。
+
+要让机器人管理文件：
+1. 在你的飞书云空间创建一个文件夹
+2. 右键文件夹 → **分享** → 搜索机器人名称
+3. 授予相应权限（查看/编辑）
+
+如果不做这一步，`feishu_drive` 的 `create_folder` 等操作会失败，因为机器人没有根目录可以创建文件夹。
+
+#### 知识库空间权限 ⚠️
+
+> **重要：** 仅有 API 权限不够，还需要将机器人添加到知识库空间。
+
+1. 打开需要机器人访问的知识库空间
+2. 点击 **设置**（齿轮图标）→ **成员管理**
+3. 点击 **添加成员** → 搜索机器人名称
+4. 选择权限级别（查看/编辑）
+
+如果不做这一步，即使 API 权限正确，`feishu_wiki` 也会返回空结果。
+
+参考文档：[知识库常见问题 - 如何将应用添加为知识库成员](https://open.feishu.cn/document/server-docs/docs/wiki-v2/wiki-qa#a40ad4ca)
+
+#### 多维表格访问权限 ⚠️
+
+> **重要：** 与其他资源一样，机器人只能访问**被分享给它的多维表格**。
+
+要让机器人访问多维表格：
+1. 打开需要机器人访问的多维表格
+2. 点击 **分享** 按钮 → 搜索机器人名称
+3. 授予相应权限（查看/编辑）
+
+`feishu_bitable` 工具支持两种 URL 格式：
+- `/base/XXX?table=YYY` - 标准多维表格链接
+- `/wiki/XXX?table=YYY` - 嵌入在知识库中的多维表格（自动转换为 app_token）
+
+#### 事件订阅 ⚠️
+
+> **这是最容易遗漏的配置！** 如果机器人能发消息但收不到消息，请检查此项。
+
+在飞书开放平台的应用后台，进入 **事件与回调** 页面：
+
+1. **事件配置方式**：选择 **使用长连接接收事件**（推荐）
+2. **添加事件订阅**，勾选以下事件：
+
+| 事件 | 说明 |
+|------|------|
+| `im.message.receive_v1` | 接收消息（必需） |
+| `im.message.message_read_v1` | 消息已读回执 |
+| `im.chat.member.bot.added_v1` | 机器人进群 |
+| `im.chat.member.bot.deleted_v1` | 机器人被移出群 |
+
+3. 确保事件订阅的权限已申请并通过审核
+
+```bash
+openclaw config set channels.feishu.appId "cli_xxxxx"
+openclaw config set channels.feishu.appSecret "your_app_secret"
+openclaw config set channels.feishu.enabled true
+```
+
+### 配置选项
+
+```yaml
+channels:
+  feishu:
+    enabled: true
+    appId: "cli_xxxxx"
+    appSecret: "secret"
+    # 域名: "feishu" (国内) 或 "lark" (国际)
+    domain: "feishu"
+    # 连接模式: "websocket" (推荐) 或 "webhook"
+    connectionMode: "websocket"
+    # 私聊策略: "pairing" | "open" | "allowlist"
+    dmPolicy: "pairing"
+    # 群聊策略: "open" | "allowlist" | "disabled"
+    groupPolicy: "allowlist"
+    # 群聊是否需要 @机器人
+    requireMention: true
+    # 媒体文件最大大小 (MB, 默认 30)
+    mediaMaxMb: 30
+    # 回复渲染模式: "auto" | "raw" | "card"
+    renderMode: "auto"
+```
+
+#### 渲染模式
+
+| 模式 | 说明 |
+|------|------|
+| `auto` | （默认）自动检测：有代码块或表格时用卡片，否则纯文本 |
+| `raw` | 始终纯文本，表格转为 ASCII |
+| `card` | 始终使用卡片，支持语法高亮、表格、链接等 |
+
+### 功能
+
+- WebSocket 和 Webhook 连接模式
+- 私聊和群聊
+- 消息回复和引用上下文
+- **入站媒体支持**：AI 可以看到图片、读取文件（PDF、Excel 等）、处理富文本中的嵌入图片
+- 图片和文件上传（出站）
+- 输入指示器（通过表情回复实现）
+- 私聊配对审批流程
+- 用户和群组目录查询
+- **卡片渲染模式**：支持语法高亮的 Markdown 渲染
+- **文档工具**：读取、创建、用 Markdown 写入飞书文档（表格因 API 限制不支持）
+- **知识库工具**：浏览知识库、列出空间、获取节点详情、搜索、创建/移动/重命名节点
+- **云空间工具**：列出文件夹、获取文件信息、创建文件夹、移动/删除文件
+- **多维表格工具**：读写多维表格记录，支持 `/base/` 和 `/wiki/` 两种链接格式
+- **@ 转发功能**：在消息中 @ 某人，机器人的回复会自动 @ 该用户
+- **权限错误提示**：当机器人遇到飞书 API 权限错误时，会自动通知用户并提供权限授权链接
+
+#### @ 转发功能
+
+如果你希望机器人的回复中 @ 某人，只需在你的消息中 @ 他们：
+
+- **私聊**：`@张三 跟他问好` → 机器人回复 `@张三 你好！`
+- **群聊**：`@机器人 @张三 跟他问好` → 机器人回复 `@张三 你好！`
+
+机器人会自动检测消息中的 @ 并在回复时带上。无需额外权限。
+
+### 常见问题
+
+#### 机器人收不到消息
+
+检查以下配置：
+1. 是否配置了 **事件订阅**？（见上方事件订阅章节）
+2. 事件配置方式是否选择了 **长连接**？
+3. 是否添加了 `im.message.receive_v1` 事件？
+4. 相关权限是否已申请并审核通过？
+
+#### 返回消息时 403 错误
+
+确保已申请 `im:message:send_as_bot` 权限，并且权限已审核通过。
+
+#### 如何清理历史会话 / 开启新对话
+
+在聊天中发送 `/new` 命令即可开启新对话。
+
+#### 消息为什么不是流式输出
+
+飞书 API 有请求频率限制，流式更新消息很容易触发限流。当前采用完整回复后一次性发送的方式，以保证稳定性。
+
+#### Windows 安装报错 `spawn npm ENOENT`
+
+如果 `openclaw plugins install` 失败，可以手动安装：
+
+```bash
+# 1. 下载插件包
+curl -O https://registry.npmjs.org/@m1heng-clawd/feishu/-/feishu-0.1.3.tgz
+
+# 2. 从本地安装
+openclaw plugins install ./feishu-0.1.3.tgz
+```
+
+#### 在飞书里找不到机器人
+
+1. 确保应用已发布（至少发布到测试版本）
+2. 在飞书搜索框中搜索机器人名称
+3. 检查应用可用范围是否包含你的账号
 
 ---
 
-## 🔄 Compatibility / 兼容性
-
-| Version  | CLI Command | Status       |
-| -------- | ----------- | ------------ |
-| OpenClaw | `openclaw`  | ✅ Latest    |
-| Clawdbot | `clawdbot`  | ✅ Supported |
-| Moltbot  | `moltbot`   | ✅ Supported |
-
----
-
-## 📄 License
+## License
 
 MIT
-
----
-
-## 🤝 Contributing / 贡献
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
-
-Issues and PRs are welcome!

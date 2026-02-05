@@ -1,222 +1,63 @@
-/**
- * 飞书插件类型定义
- */
+import type { FeishuConfigSchema, FeishuGroupSchema, z } from "./config-schema.js";
+import type { MentionTarget } from "./mention.js";
 
-/**
- * 飞书通道配置
- */
-export interface FeishuChannelConfig {
-  /** 是否启用 */
-  enabled?: boolean;
-  /** 飞书应用 App ID */
-  appId?: string;
-  /** 飞书应用 App Secret */
-  appSecret?: string;
-  /** DM 策略 */
-  dmPolicy?: "open" | "pairing" | "allowlist";
-  /** 允许的用户列表 */
-  allowFrom?: string[];
-  /** 群组配置 */
-  groups?: Record<string, { requireMention?: boolean }>;
-  /** 管理员用户 open_id 列表（用于审批） */
-  adminIds?: string[];
-  /** 本地文件访问控制 */
-  fileAccess?: {
-    /** 允许访问的目录白名单（绝对或相对路径） */
-    whiteList?: string[];
-    /** 禁止访问的目录黑名单（绝对或相对路径） */
-    blackList?: string[];
-    /** 是否要求管理员审批（默认 true，当 adminIds 配置时生效） */
-    requireApproval?: boolean;
-    /** 审批通知的聊天 ID（建议配置为管理员群） */
-    approvalChatId?: string;
-    /** 审批有效期（毫秒） */
-    approvalTimeoutMs?: number;
-  };
-  /** 是否在日志中输出消息内容 */
-  logMessageContent?: boolean;
-}
+export type FeishuConfig = z.infer<typeof FeishuConfigSchema>;
+export type FeishuGroupConfig = z.infer<typeof FeishuGroupSchema>;
 
-/**
- * 解析后的飞书账号
- */
-export interface ResolvedFeishuAccount {
+export type FeishuDomain = "feishu" | "lark";
+export type FeishuConnectionMode = "websocket" | "webhook";
+
+export type ResolvedFeishuAccount = {
   accountId: string;
-  appId: string;
-  appSecret: string;
-  config: FeishuChannelConfig;
-}
+  enabled: boolean;
+  configured: boolean;
+  appId?: string;
+  domain: FeishuDomain;
+};
 
-/**
- * 飞书消息
- */
-export interface FeishuMessage {
+export type FeishuIdType = "open_id" | "user_id" | "union_id" | "chat_id";
+
+export type FeishuMessageContext = {
+  chatId: string;
+  messageId: string;
+  senderId: string;
+  senderOpenId: string;
+  senderName?: string;
+  chatType: "p2p" | "group";
+  mentionedBot: boolean;
+  rootId?: string;
+  parentId?: string;
+  content: string;
+  contentType: string;
+  /** Mention forward targets (excluding the bot itself) */
+  mentionTargets?: MentionTarget[];
+  /** Extracted message body (after removing @ placeholders) */
+  mentionMessageBody?: string;
+};
+
+export type FeishuSendResult = {
   messageId: string;
   chatId: string;
-  chatType: "p2p" | "group";
-  senderId: string;
-  senderName?: string;
-  messageType: string;
-  content: string;
-  text?: string;
-  /** 图片消息的 image_key */
-  imageKey?: string;
-  /** 文件消息的 file_key */
-  fileKey?: string;
-  /** 文件名（文件消息） */
-  fileName?: string;
-  /** 语音识别结果（语音消息） */
-  audioRecognition?: string;
-  /** 语音时长（毫秒） */
-  audioDuration?: number;
-  mentions?: FeishuMention[];
-  createTime?: number;
-  /** 被引用消息的 ID */
-  parentId?: string;
-  /** 被引用消息的文本内容 */
-  quotedText?: string;
-}
+};
 
-/**
- * 飞书 @ 提及
- */
-export interface FeishuMention {
-  key: string;
-  id: {
-    open_id: string;
-    user_id?: string;
-    union_id?: string;
-  };
-  name: string;
-}
-
-/**
- * 消息上下文
- */
-export interface MsgContext {
-  From: string;
-  Body: string;
-  AccountId: string;
-  Provider: string;
-  Surface: string;
-  SessionKey: string;
-  To: string;
-  ChatType: "direct" | "group";
-  MessageId?: string;
-  ReplyToId?: string;
-  SenderName?: string;
-  Mentions?: string[];
-  MediaUrls?: string[];
-}
-
-/**
- * 文档信息
- */
-export interface DocumentInfo {
-  documentId: string;
-  title: string;
-  url: string;
-  ownerId?: string;
-}
-
-/**
- * 文档块类型
- */
-export type BlockType =
-  | "page"
-  | "text"
-  | "heading1"
-  | "heading2"
-  | "heading3"
-  | "heading4"
-  | "heading5"
-  | "heading6"
-  | "heading7"
-  | "heading8"
-  | "heading9"
-  | "bullet"
-  | "ordered"
-  | "todo"
-  | "code"
-  | "quote"
-  | "divider"
-  | "image"
-  | "table"
-  | "tableCell"
-  | "grid"
-  | "gridColumn";
-
-/**
- * 文档块
- */
-export interface DocumentBlock {
-  /** 块 ID（读取时返回） */
-  blockId?: string;
-  /** 块类型 */
-  blockType: BlockType;
-  /** 文本内容 */
-  text?: string;
-  /** 待办事项是否完成 */
-  checked?: boolean;
-  /** 代码块语言 */
-  language?: string;
-  /** 图片 token */
-  imageToken?: string;
-  /** 图片宽度 */
-  imageWidth?: number;
-  /** 图片高度 */
-  imageHeight?: number;
-  /** 子块（用于表格、Grid 等） */
-  children?: DocumentBlock[];
-  /** 父块 ID */
-  parentId?: string;
-}
-
-/**
- * 解析后的文档结构
- */
-export interface ParsedDocument {
-  /** 文档 ID */
-  documentId: string;
-  /** 文档标题 */
-  title: string;
-  /** 文档 URL */
-  url: string;
-  /** 文档块列表 */
-  blocks: DocumentBlock[];
-  /** 纯文本内容 */
-  plainText?: string;
-}
-
-/**
- * 文件信息
- */
-export interface FileInfo {
-  token: string;
-  name: string;
-  type: string;
-  url?: string;
-  parentToken?: string;
-  size?: number;
-  createdTime?: number;
-  modifiedTime?: number;
-}
-
-/**
- * 文件夹信息
- */
-export interface FolderInfo {
-  token: string;
-  name: string;
-  url?: string;
-  parentToken?: string;
-}
-
-/**
- * API 结果
- */
-export interface ApiResult<T = void> {
+export type FeishuProbeResult = {
   ok: boolean;
-  data?: T;
   error?: string;
-}
+  appId?: string;
+  botName?: string;
+  botOpenId?: string;
+};
+
+export type FeishuMediaInfo = {
+  path: string;
+  contentType?: string;
+  placeholder: string;
+};
+
+export type FeishuToolsConfig = {
+  doc?: boolean;
+  wiki?: boolean;
+  drive?: boolean;
+  perm?: boolean;
+  scopes?: boolean;
+};
