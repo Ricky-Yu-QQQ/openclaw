@@ -490,7 +490,7 @@ async function collectChannelSecurityFindings(params: {
     const policyPath = input.policyPath ?? `${input.allowFromPath}policy`;
     const configAllowFrom = normalizeAllowFromList(input.allowFrom);
     const hasWildcard = configAllowFrom.includes("*");
-    const dmScope = params.cfg.session?.dmScope ?? "main";
+    const dmScope = params.cfg.session?.dmScope ?? "per-peer";
     const storeAllowFrom = await readChannelAllowFromStore(input.provider).catch(() => []);
     const normalizeEntry = input.normalizeEntry ?? ((value: string) => value);
     const normalizedCfg = configAllowFrom

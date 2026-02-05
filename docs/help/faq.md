@@ -1897,7 +1897,7 @@ See [Groups](/concepts/groups) and [Group messages](/concepts/group-messages).
 
 ### Do groupsthreads share context with DMs
 
-Direct chats collapse to the main session by default. Groups/channels have their own session keys, and Telegram topics / Discord threads are separate sessions. See [Groups](/concepts/groups) and [Group messages](/concepts/group-messages).
+Direct chats follow `session.dmScope` (default `per-peer`), so DMs are isolated by sender unless you set `dmScope: "main"`. Groups/channels have their own session keys, and Telegram topics / Discord threads are separate sessions. See [Groups](/concepts/groups) and [Group messages](/concepts/group-messages).
 
 ### How many workspaces and agents can I create
 

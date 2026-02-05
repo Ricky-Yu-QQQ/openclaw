@@ -136,7 +136,7 @@ export function buildAgentPeerSessionKey(params: {
 }): string {
   const peerKind = params.peerKind ?? "dm";
   if (peerKind === "dm") {
-    const dmScope = params.dmScope ?? "main";
+    const dmScope = params.dmScope ?? "per-peer";
     let peerId = (params.peerId ?? "").trim();
     const linkedPeerId =
       dmScope === "main"

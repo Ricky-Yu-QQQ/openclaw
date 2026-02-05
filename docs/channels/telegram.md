@@ -37,7 +37,7 @@ Minimal config:
 
 - A Telegram Bot API channel owned by the Gateway.
 - Deterministic routing: replies go back to Telegram; the model never chooses channels.
-- DMs share the agent's main session; groups stay isolated (`agent:<agentId>:telegram:group:<chatId>`).
+- DMs follow `session.dmScope` (default `per-peer`); groups stay isolated (`agent:<agentId>:telegram:group:<chatId>`).
 
 ## Setup (fast path)
 

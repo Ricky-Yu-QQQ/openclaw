@@ -84,7 +84,7 @@ This lets **multiple people** share one Gateway server while keeping their AI �
 
 You can route **different WhatsApp DMs** to different agents while staying on **one WhatsApp account**. Match on sender E.164 (like `+15551234567`) with `peer.kind: "dm"`. Replies still come from the same WhatsApp number (no per‑agent sender identity).
 
-Important detail: direct chats collapse to the agent’s **main session key**, so true isolation requires **one agent per person**.
+Important detail: direct chats follow `session.dmScope` (default `per-peer`). If you set `dmScope: "main"`, all DMs collapse to the agent’s main session key, so true isolation requires **one agent per person**.
 
 Example:
 
@@ -136,7 +136,7 @@ multiple phone numbers without mixing sessions.
 - `agentId`: one “brain” (workspace, per-agent auth, per-agent session store).
 - `accountId`: one channel account instance (e.g. WhatsApp account `"personal"` vs `"biz"`).
 - `binding`: routes inbound messages to an `agentId` by `(channel, accountId, peer)` and optionally guild/team ids.
-- Direct chats collapse to `agent:<agentId>:<mainKey>` (per-agent “main”; `session.mainKey`).
+- Direct chats follow `session.dmScope` (default `per-peer`; `main` collapses to `agent:<agentId>:<mainKey>`).
 
 ## Example: two WhatsApps → two agents
 

@@ -139,7 +139,7 @@ Once verified, the bot can decrypt messages in encrypted rooms.
 ## Routing model
 
 - Replies always go back to Matrix.
-- DMs share the agent's main session; rooms map to group sessions.
+- DMs follow `session.dmScope` (default `per-peer`); rooms map to group sessions.
 
 ## Access control (DMs)
 

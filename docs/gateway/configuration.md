@@ -2722,7 +2722,7 @@ Controls session scoping, reset policy, reset triggers, and where the session st
 {
   session: {
     scope: "per-sender",
-    dmScope: "main",
+    dmScope: "per-peer",
     identityLinks: {
       alice: ["telegram:123456789", "discord:987654321012345678"],
     },
@@ -2740,7 +2740,7 @@ Controls session scoping, reset policy, reset triggers, and where the session st
     // Default is already per-agent under ~/.openclaw/agents/<agentId>/sessions/sessions.json
     // You can override with {agentId} templating:
     store: "~/.openclaw/agents/{agentId}/sessions/sessions.json",
-    // Direct chats collapse to agent:<agentId>:<mainKey> (default: "main").
+    // When dmScope=main, direct chats collapse to agent:<agentId>:<mainKey> (default: "main").
     mainKey: "main",
     agentToAgent: {
       // Max ping-pong reply turns between requester/target (0–5).
@@ -2757,12 +2757,12 @@ Controls session scoping, reset policy, reset triggers, and where the session st
 Fields:
 
 - `mainKey`: direct-chat bucket key (default: `"main"`). Useful when you want to “rename” the primary DM thread without changing `agentId`.
-  - Sandbox note: `agents.defaults.sandbox.mode: "non-main"` uses this key to detect the main session. Any session key that does not match `mainKey` (groups/channels) is sandboxed.
-- `dmScope`: how DM sessions are grouped (default: `"main"`).
-  - `main`: all DMs share the main session for continuity.
+  - Sandbox note: `agents.defaults.sandbox.mode: "non-main"` uses this key to detect the main session. Any session key that does not match `mainKey` (groups/channels and per-peer DMs) is sandboxed.
+- `dmScope`: how DM sessions are grouped (default: `"per-peer"`).
   - `per-peer`: isolate DMs by sender id across channels.
   - `per-channel-peer`: isolate DMs per channel + sender (recommended for multi-user inboxes).
   - `per-account-channel-peer`: isolate DMs per account + channel + sender (recommended for multi-account inboxes).
+  - `main`: all DMs share the main session for continuity.
 - `identityLinks`: map canonical ids to provider-prefixed peers so the same person shares a DM session across channels when using `per-peer`, `per-channel-peer`, or `per-account-channel-peer`.
   - Example: `alice: ["telegram:123456789", "discord:987654321012345678"]`.
 - `reset`: primary reset policy. Defaults to daily resets at 4:00 AM local time on the gateway host.

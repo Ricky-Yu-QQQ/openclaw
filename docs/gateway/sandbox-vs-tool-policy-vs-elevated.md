@@ -36,7 +36,7 @@ It prints:
 Sandboxing is controlled by `agents.defaults.sandbox.mode`:
 
 - `"off"`: everything runs on the host.
-- `"non-main"`: only non-main sessions are sandboxed (common “surprise” for groups/channels).
+- `"non-main"`: only non-main sessions are sandboxed (common “surprise” for groups/channels and per-peer DMs).
 - `"all"`: everything is sandboxed.
 
 See [Sandboxing](/gateway/sandboxing) for the full matrix (scope, workspace mounts, images).
@@ -125,4 +125,4 @@ Fix-it keys (pick one):
 
 ### “I thought this was main, why is it sandboxed?”
 
-In `"non-main"` mode, group/channel keys are _not_ main. Use the main session key (shown by `sandbox explain`) or switch mode to `"off"`.
+In `"non-main"` mode, group/channel keys (and per-peer DMs) are _not_ main. Use the main session key (shown by `sandbox explain`) or switch mode to `"off"`.

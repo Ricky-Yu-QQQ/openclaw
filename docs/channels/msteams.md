@@ -472,7 +472,7 @@ Key settings (see `/gateway/configuration` for shared channel patterns):
 ## Routing & Sessions
 
 - Session keys follow the standard agent format (see [/concepts/session](/concepts/session)):
-  - Direct messages share the main session (`agent:<agentId>:<mainKey>`).
+  - Direct messages follow `session.dmScope` (default `per-peer`).
   - Channel/group messages use conversation id:
     - `agent:<agentId>:msteams:channel:<conversationId>`
     - `agent:<agentId>:msteams:group:<conversationId>`

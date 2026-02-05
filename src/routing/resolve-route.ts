@@ -181,7 +181,7 @@ export function resolveAgentRoute(input: ResolveAgentRouteInput): ResolvedAgentR
     return matchesAccountId(binding.match?.accountId, accountId);
   });
 
-  const dmScope = input.cfg.session?.dmScope ?? "main";
+  const dmScope = input.cfg.session?.dmScope ?? "per-peer";
   const identityLinks = input.cfg.session?.identityLinks;
 
   const choose = (agentId: string, matchedBy: ResolvedAgentRoute["matchedBy"]) => {

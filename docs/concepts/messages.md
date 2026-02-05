@@ -68,7 +68,7 @@ Notes:
 
 Sessions are owned by the gateway, not by clients.
 
-- Direct chats collapse into the agent main session key.
+- Direct chats follow `session.dmScope` (default `per-peer`).
 - Groups/channels get their own session keys.
 - The session store and transcripts live on the gateway host.
 

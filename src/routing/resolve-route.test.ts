@@ -13,7 +13,7 @@ describe("resolveAgentRoute", () => {
     });
     expect(route.agentId).toBe("main");
     expect(route.accountId).toBe("default");
-    expect(route.sessionKey).toBe("agent:main:main");
+    expect(route.sessionKey).toBe("agent:main:dm:+15551234567");
     expect(route.matchedBy).toBe("default");
   });
 
@@ -103,7 +103,7 @@ describe("resolveAgentRoute", () => {
       peer: { kind: "dm", id: "+1000" },
     });
     expect(route.agentId).toBe("a");
-    expect(route.sessionKey).toBe("agent:a:main");
+    expect(route.sessionKey).toBe("agent:a:dm:+1000");
     expect(route.matchedBy).toBe("binding.peer");
   });
 
@@ -223,7 +223,7 @@ describe("resolveAgentRoute", () => {
       peer: { kind: "dm", id: "+1000" },
     });
     expect(route.agentId).toBe("home");
-    expect(route.sessionKey).toBe("agent:home:main");
+    expect(route.sessionKey).toBe("agent:home:dm:+1000");
   });
 });
 

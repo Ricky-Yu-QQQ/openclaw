@@ -50,14 +50,14 @@ If you want...
 
 - Group sessions use `agent:<agentId>:<channel>:group:<id>` session keys (rooms/channels use `agent:<agentId>:<channel>:channel:<id>`).
 - Telegram forum topics add `:topic:<threadId>` to the group id so each topic has its own session.
-- Direct chats use the main session (or per-sender if configured).
+- Direct chats follow `session.dmScope` (default `per-peer`).
 - Heartbeats are skipped for group sessions.
 
 ## Pattern: personal DMs + public groups (single agent)
 
 Yes — this works well if your “personal” traffic is **DMs** and your “public” traffic is **groups**.
 
-Why: in single-agent mode, DMs typically land in the **main** session key (`agent:main:main`), while groups always use **non-main** session keys (`agent:main:<channel>:group:<id>`). If you enable sandboxing with `mode: "non-main"`, those group sessions run in Docker while your main DM session stays on-host.
+Why: in single-agent mode, DMs follow `session.dmScope`. With the default `per-peer`, DMs land in `agent:main:dm:<id>` (non-main), while groups always use `agent:main:<channel>:group:<id>`. If you enable sandboxing with `mode: "non-main"`, both DMs and groups will run in Docker. If you want only groups sandboxed, set `session.dmScope: "main"` so DMs stay on the main session key.
 
 This gives you one agent “brain” (shared workspace + memory), but two execution postures:
 

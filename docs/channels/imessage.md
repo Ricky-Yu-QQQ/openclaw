@@ -36,7 +36,7 @@ Minimal config:
 
 - iMessage channel backed by `imsg` on macOS.
 - Deterministic routing: replies always go back to iMessage.
-- DMs share the agent's main session; groups are isolated (`agent:<agentId>:imessage:group:<chat_id>`).
+- DMs follow `session.dmScope` (default `per-peer`); groups are isolated (`agent:<agentId>:imessage:group:<chat_id>`).
 - If a multi-participant thread arrives with `is_group=false`, you can still isolate it by `chat_id` using `channels.imessage.groups` (see “Group-ish threads” below).
 
 ## Config writes

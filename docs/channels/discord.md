@@ -37,7 +37,7 @@ Minimal config:
 ## Goals
 
 - Talk to OpenClaw via Discord DMs or guild channels.
-- Direct chats collapse into the agent's main session (default `agent:main:main`); guild channels stay isolated as `agent:<agentId>:discord:channel:<channelId>` (display names use `discord:<guildSlug>#<channelSlug>`).
+- Direct chats follow `session.dmScope` (default `per-peer`); guild channels stay isolated as `agent:<agentId>:discord:channel:<channelId>` (display names use `discord:<guildSlug>#<channelSlug>`).
 - Group DMs are ignored by default; enable via `channels.discord.dm.groupEnabled` and optionally restrict by `channels.discord.dm.groupChannels`.
 - Keep routing deterministic: replies always go back to the channel they arrived on.
 

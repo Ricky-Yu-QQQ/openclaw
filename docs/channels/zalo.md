@@ -50,7 +50,7 @@ It is a good fit for support or notifications where you want deterministic routi
 
 - A Zalo Bot API channel owned by the Gateway.
 - Deterministic routing: replies go back to Zalo; the model never chooses channels.
-- DMs share the agent's main session.
+- DMs follow `session.dmScope` (default `per-peer`).
 - Groups are not yet supported (Zalo docs state "coming soon").
 
 ## Setup (fast path)

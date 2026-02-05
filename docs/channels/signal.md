@@ -38,7 +38,7 @@ Minimal config:
 
 - Signal channel via `signal-cli` (not embedded libsignal).
 - Deterministic routing: replies always go back to Signal.
-- DMs share the agent's main session; groups are isolated (`agent:<agentId>:signal:group:<groupId>`).
+- DMs follow `session.dmScope` (default `per-peer`); groups are isolated (`agent:<agentId>:signal:group:<groupId>`).
 
 ## Config writes
 

@@ -7,14 +7,14 @@ title: "Session Management"
 
 # Session Management
 
-OpenClaw treats **one direct-chat session per agent** as primary. Direct chats collapse to `agent:<agentId>:<mainKey>` (default `main`), while group/channel chats get their own keys. `session.mainKey` is honored.
+OpenClaw treats **one direct-chat session per agent** as primary (the main key), but DM routing follows `session.dmScope` (default `per-peer`). Group/channel chats get their own keys. `session.mainKey` is honored.
 
 Use `session.dmScope` to control how **direct messages** are grouped:
 
-- `main` (default): all DMs share the main session for continuity.
-- `per-peer`: isolate by sender id across channels.
+- `per-peer` (default): isolate by sender id across channels.
 - `per-channel-peer`: isolate by channel + sender (recommended for multi-user inboxes).
 - `per-account-channel-peer`: isolate by account + channel + sender (recommended for multi-account inboxes).
+- `main`: all DMs share the main session for continuity.
   Use `session.identityLinks` to map provider-prefixed peer ids to a canonical identity so the same person shares a DM session across channels when using `per-peer`, `per-channel-peer`, or `per-account-channel-peer`.
 
 ## Gateway is the source of truth
@@ -48,9 +48,9 @@ the workspace is writable. See [Memory](/concepts/memory) and
 
 ## Mapping transports → session keys
 
-- Direct chats follow `session.dmScope` (default `main`).
+- Direct chats follow `session.dmScope` (default `per-peer`).
   - `main`: `agent:<agentId>:<mainKey>` (continuity across devices/channels).
-    - Multiple phone numbers and channels can map to the same agent main key; they act as transports into one conversation.
+    - When `dmScope=main`, multiple phone numbers and channels can map to the same agent main key; they act as transports into one conversation.
   - `per-peer`: `agent:<agentId>:dm:<peerId>`.
   - `per-channel-peer`: `agent:<agentId>:<channel>:dm:<peerId>`.
   - `per-account-channel-peer`: `agent:<agentId>:<channel>:<accountId>:dm:<peerId>` (accountId defaults to `default`).
@@ -108,7 +108,7 @@ Runtime override (owner only):
 {
   session: {
     scope: "per-sender", // keep group keys separate
-    dmScope: "main", // DM continuity (set per-channel-peer/per-account-channel-peer for shared inboxes)
+    dmScope: "per-peer", // Default DM isolation (set main for continuity, per-channel-peer for shared inboxes)
     identityLinks: {
       alice: ["telegram:123456789", "discord:987654321012345678"],
     },

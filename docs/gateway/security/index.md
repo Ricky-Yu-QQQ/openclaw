@@ -197,7 +197,7 @@ Details + files on disk: [Pairing](/start/pairing)
 
 ## DM session isolation (multi-user mode)
 
-By default, OpenClaw routes **all DMs into the main session** so your assistant has continuity across devices and channels. If **multiple people** can DM the bot (open DMs or a multi-person allowlist), consider isolating DM sessions:
+By default, OpenClaw isolates DMs per sender (`session.dmScope="per-peer"`). If you want continuity across devices and channels, set `dmScope: "main"`. If **multiple people** can DM the bot (open DMs or a multi-person allowlist), consider isolating DM sessions per channel or account:
 
 ```json5
 {

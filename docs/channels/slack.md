@@ -467,7 +467,7 @@ For fine-grained control, use these tags in agent responses:
 
 ## Sessions + routing
 
-- DMs share the `main` session (like WhatsApp/Telegram).
+- DMs follow `session.dmScope` (default `per-peer`).
 - Channels map to `agent:<agentId>:slack:channel:<channelId>` sessions.
 - Slash commands use `agent:<agentId>:slack:slash:<userId>` sessions (prefix configurable via `channels.slack.slashCommand.sessionPrefix`).
 - If Slack doesn’t provide `channel_type`, OpenClaw infers it from the channel ID prefix (`D`, `C`, `G`) and defaults to `channel` to keep session keys stable.
