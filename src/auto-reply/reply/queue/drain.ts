@@ -82,6 +82,20 @@ export function scheduleFollowupDrain(
           const originatingThreadId = items.find(
             (i) => typeof i.originatingThreadId === "number",
           )?.originatingThreadId;
+          const originatingMessageIds = Array.from(
+            new Set(
+              items
+                .flatMap((item) =>
+                  (item.originatingMessageIds?.length ?? 0) > 0
+                    ? (item.originatingMessageIds ?? [])
+                    : item.messageId
+                      ? [item.messageId]
+                      : [],
+                )
+                .map((value) => value.trim())
+                .filter(Boolean),
+            ),
+          );
 
           const prompt = buildCollectPrompt({
             title: "[Queued messages while agent was busy]",
@@ -97,6 +111,7 @@ export function scheduleFollowupDrain(
             originatingTo,
             originatingAccountId,
             originatingThreadId,
+            ...(originatingMessageIds.length > 0 ? { originatingMessageIds } : {}),
           });
           continue;
         }

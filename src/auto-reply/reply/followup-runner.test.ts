@@ -7,6 +7,7 @@ import { loadSessionStore, saveSessionStore, type SessionEntry } from "../../con
 import { createMockTypingController } from "./test-helpers.js";
 
 const runEmbeddedPiAgentMock = vi.fn();
+const dispatchChannelMessageAction = vi.fn();
 
 vi.mock("../../agents/model-fallback.js", () => ({
   runWithModelFallback: async ({
@@ -26,6 +27,10 @@ vi.mock("../../agents/model-fallback.js", () => ({
 
 vi.mock("../../agents/pi-embedded.js", () => ({
   runEmbeddedPiAgent: (params: unknown) => runEmbeddedPiAgentMock(params),
+}));
+
+vi.mock("../../channels/plugins/message-actions.js", () => ({
+  dispatchChannelMessageAction: (...args: any[]) => dispatchChannelMessageAction(...args),
 }));
 
 import { createFollowupRunner } from "./followup-runner.js";
@@ -236,5 +241,83 @@ describe("createFollowupRunner messaging tool dedupe", () => {
     const store = loadSessionStore(storePath, { skipCache: true });
     expect(store[sessionKey]?.totalTokens ?? 0).toBeGreaterThan(0);
     expect(store[sessionKey]?.model).toBe("claude-opus-4-5");
+  });
+});
+
+describe("createFollowupRunner feishu reactions", () => {
+  it("adds DONE reaction after sending followup payloads", async () => {
+    dispatchChannelMessageAction.mockReset();
+    runEmbeddedPiAgentMock.mockResolvedValueOnce({
+      payloads: [{ text: "hello" }],
+      meta: {},
+    });
+
+    const onBlockReply = vi.fn(async () => {});
+    const runner = createFollowupRunner({
+      opts: { onBlockReply },
+      typing: createMockTypingController(),
+      typingMode: "instant",
+      defaultModel: "anthropic/claude-opus-4-5",
+    });
+
+    const queued = {
+      ...baseQueuedRun("feishu"),
+      originatingChannel: "feishu",
+      originatingTo: undefined,
+      originatingMessageIds: ["m1", "m2"],
+      run: {
+        ...baseQueuedRun("feishu").run,
+        config: { channels: { feishu: { appId: "app", appSecret: "secret" } } },
+      },
+    } as FollowupRun;
+
+    await runner(queued);
+
+    expect(dispatchChannelMessageAction).toHaveBeenCalledTimes(2);
+    expect(dispatchChannelMessageAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: "feishu",
+        action: "react",
+        params: { messageId: "m1", emoji: "DONE" },
+      }),
+    );
+    expect(dispatchChannelMessageAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: "feishu",
+        action: "react",
+        params: { messageId: "m2", emoji: "DONE" },
+      }),
+    );
+  });
+
+  it("skips DONE reaction when no payloads are sent", async () => {
+    dispatchChannelMessageAction.mockReset();
+    runEmbeddedPiAgentMock.mockResolvedValueOnce({
+      payloads: [],
+      meta: {},
+    });
+
+    const onBlockReply = vi.fn(async () => {});
+    const runner = createFollowupRunner({
+      opts: { onBlockReply },
+      typing: createMockTypingController(),
+      typingMode: "instant",
+      defaultModel: "anthropic/claude-opus-4-5",
+    });
+
+    const queued = {
+      ...baseQueuedRun("feishu"),
+      originatingChannel: "feishu",
+      originatingTo: undefined,
+      originatingMessageIds: ["m1"],
+      run: {
+        ...baseQueuedRun("feishu").run,
+        config: { channels: { feishu: { appId: "app", appSecret: "secret" } } },
+      },
+    } as FollowupRun;
+
+    await runner(queued);
+
+    expect(dispatchChannelMessageAction).not.toHaveBeenCalled();
   });
 });

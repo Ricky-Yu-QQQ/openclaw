@@ -147,7 +147,7 @@ describe("feishu reply dispatcher", () => {
     expect(sendMarkdownCardFeishu).toHaveBeenCalled();
   });
 
-  it("adds done reaction by default on idle", async () => {
+  it("skips done reaction when nothing was delivered", async () => {
     addReactionFeishu.mockResolvedValue({ reactionId: "r1" });
 
     const { markDispatchIdle } = createFeishuReplyDispatcher({
@@ -158,6 +158,23 @@ describe("feishu reply dispatcher", () => {
       replyToMessageId: "msg_1",
     });
 
+    markDispatchIdle();
+
+    expect(addReactionFeishu).not.toHaveBeenCalled();
+  });
+
+  it("adds done reaction after delivery and idle", async () => {
+    addReactionFeishu.mockResolvedValue({ reactionId: "r1" });
+
+    const { dispatcher, markDispatchIdle } = createFeishuReplyDispatcher({
+      cfg: baseCfg,
+      agentId: "agent",
+      runtime: { log: vi.fn(), error: vi.fn() } as any,
+      chatId: "oc_1",
+      replyToMessageId: "msg_1",
+    });
+
+    await dispatcher.deliver({ text: "hello" } as any);
     markDispatchIdle();
 
     expect(addReactionFeishu).toHaveBeenCalledWith({

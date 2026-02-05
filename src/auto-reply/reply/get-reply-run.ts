@@ -354,6 +354,9 @@ export async function runPreparedReply(
   const followupRun = {
     prompt: queuedBody,
     messageId: sessionCtx.MessageSidFull ?? sessionCtx.MessageSid,
+    originatingMessageIds: [sessionCtx.MessageSidFull ?? sessionCtx.MessageSid].filter(
+      (value): value is string => Boolean(value?.trim()),
+    ),
     summaryLine: baseBodyTrimmedRaw,
     enqueuedAt: Date.now(),
     // Originating channel for reply routing.

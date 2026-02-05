@@ -283,4 +283,43 @@ describe("followup queue collect routing", () => {
     expect(calls[0]?.originatingChannel).toBe("slack");
     expect(calls[0]?.originatingTo).toBe("channel:A");
   });
+
+  it("collects message ids for followup acknowledgements", async () => {
+    const key = `test-collect-message-ids-${Date.now()}`;
+    const calls: FollowupRun[] = [];
+    const runFollowup = async (run: FollowupRun) => {
+      calls.push(run);
+    };
+    const settings: QueueSettings = {
+      mode: "collect",
+      debounceMs: 0,
+      cap: 50,
+      dropPolicy: "summarize",
+    };
+
+    enqueueFollowupRun(
+      key,
+      createRun({
+        prompt: "one",
+        messageId: "m1",
+        originatingChannel: "feishu",
+        originatingTo: "chat:oc_1",
+      }),
+      settings,
+    );
+    enqueueFollowupRun(
+      key,
+      createRun({
+        prompt: "two",
+        messageId: "m2",
+        originatingChannel: "feishu",
+        originatingTo: "chat:oc_1",
+      }),
+      settings,
+    );
+
+    scheduleFollowupDrain(key, runFollowup);
+    await expect.poll(() => calls.length).toBe(1);
+    expect(calls[0]?.originatingMessageIds).toEqual(["m1", "m2"]);
+  });
 });

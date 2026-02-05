@@ -22,6 +22,8 @@ export type FollowupRun = {
   prompt: string;
   /** Provider message ID, when available (for deduplication). */
   messageId?: string;
+  /** Provider message IDs that this followup reply should acknowledge. */
+  originatingMessageIds?: string[];
   summaryLine?: string;
   enqueuedAt: number;
   /**

@@ -84,6 +84,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
   // We use message reactions as a typing indicator substitute.
   let typingState: TypingIndicatorState | null = null;
   let doneReactionSent = false;
+  let delivered = false;
 
   const typingCallbacks = createTypingCallbacks({
     start: async () => {
@@ -170,6 +171,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
               replyToMessageId,
               mentions: isFirstChunk ? mentionTargets : undefined,
             });
+            delivered = true;
             isFirstChunk = false;
           }
         } else {
@@ -185,6 +187,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
               replyToMessageId,
               mentions: isFirstChunk ? mentionTargets : undefined,
             });
+            delivered = true;
             isFirstChunk = false;
           }
         }
@@ -195,7 +198,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
       },
       onIdle: async () => {
         typingCallbacks.onIdle?.();
-        if (doneReactionSent) {
+        if (doneReactionSent || !delivered) {
           return;
         }
         doneReactionSent = true;

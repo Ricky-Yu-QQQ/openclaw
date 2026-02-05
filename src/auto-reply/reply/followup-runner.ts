@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import type { OpenClawConfig } from "../../config/config.js";
 import type { TypingMode } from "../../config/types.js";
 import type { OriginatingChannelType } from "../templating.js";
 import type { GetReplyOptions, ReplyPayload } from "../types.js";
@@ -9,6 +10,7 @@ import { lookupContextTokens } from "../../agents/context.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
 import { runWithModelFallback } from "../../agents/model-fallback.js";
 import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
+import { dispatchChannelMessageAction } from "../../channels/plugins/message-actions.js";
 import { resolveAgentIdFromSessionKey, type SessionEntry } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { registerAgentRunContext } from "../../infra/agent-events.js";
@@ -25,6 +27,25 @@ import { isRoutableChannel, routeReply } from "./route-reply.js";
 import { incrementCompactionCount } from "./session-updates.js";
 import { persistSessionUsageUpdate } from "./session-usage.js";
 import { createTypingSignaler } from "./typing-mode.js";
+
+const DEFAULT_FEISHU_DONE_REACTION = "DONE";
+
+function resolveFeishuDoneReaction(cfg: OpenClawConfig): string | null {
+  const raw = (cfg.channels?.feishu as { reactionOnDone?: string } | undefined)?.reactionOnDone;
+  if (raw === undefined) {
+    return DEFAULT_FEISHU_DONE_REACTION;
+  }
+  const trimmed = raw.trim();
+  return trimmed ? trimmed : null;
+}
+
+function resolveDoneMessageIds(queued: FollowupRun): string[] {
+  const direct = queued.originatingMessageIds ?? [];
+  const fallback = queued.messageId ? [queued.messageId] : [];
+  const combined = direct.length > 0 ? direct : fallback;
+  const normalized = combined.map((value) => value.trim()).filter(Boolean);
+  return Array.from(new Set(normalized));
+}
 
 export function createFollowupRunner(params: {
   opts?: GetReplyOptions;
@@ -62,15 +83,20 @@ export function createFollowupRunner(params: {
    * session's current dispatcher. This ensures replies go back to
    * where the message originated.
    */
-  const sendFollowupPayloads = async (payloads: ReplyPayload[], queued: FollowupRun) => {
+  const sendFollowupPayloads = async (
+    payloads: ReplyPayload[],
+    queued: FollowupRun,
+  ): Promise<boolean> => {
     // Check if we should route to originating channel.
     const { originatingChannel, originatingTo } = queued;
     const shouldRouteToOriginating = isRoutableChannel(originatingChannel) && originatingTo;
 
     if (!shouldRouteToOriginating && !opts?.onBlockReply) {
       logVerbose("followup queue: no onBlockReply handler; dropping payloads");
-      return;
+      return false;
     }
+
+    let didSend = false;
 
     for (const payload of payloads) {
       if (!payload?.text && !payload?.mediaUrl && !payload?.mediaUrls?.length) {
@@ -96,6 +122,9 @@ export function createFollowupRunner(params: {
           threadId: queued.originatingThreadId,
           cfg: queued.run.config,
         });
+        if (result.ok) {
+          didSend = true;
+        }
         if (!result.ok) {
           // Log error and fall back to dispatcher if available.
           const errorMsg = result.error ?? "unknown error";
@@ -107,8 +136,10 @@ export function createFollowupRunner(params: {
         }
       } else if (opts?.onBlockReply) {
         await opts.onBlockReply(payload);
+        didSend = true;
       }
     }
+    return didSend;
   };
 
   return async (queued: FollowupRun) => {
@@ -276,7 +307,27 @@ export function createFollowupRunner(params: {
         }
       }
 
-      await sendFollowupPayloads(finalPayloads, queued);
+      const didSend = await sendFollowupPayloads(finalPayloads, queued);
+
+      const reactionChannel =
+        queued.originatingChannel?.toLowerCase() ?? queued.run.messageProvider?.toLowerCase();
+      if (didSend && reactionChannel === "feishu") {
+        const emojiType = resolveFeishuDoneReaction(queued.run.config);
+        const messageIds = resolveDoneMessageIds(queued);
+        if (emojiType && messageIds.length > 0) {
+          await Promise.allSettled(
+            messageIds.map((messageId) =>
+              dispatchChannelMessageAction({
+                channel: "feishu",
+                action: "react",
+                cfg: queued.run.config,
+                params: { messageId, emoji: emojiType },
+                accountId: queued.originatingAccountId ?? undefined,
+              }),
+            ),
+          );
+        }
+      }
     } finally {
       typing.markRunComplete();
     }

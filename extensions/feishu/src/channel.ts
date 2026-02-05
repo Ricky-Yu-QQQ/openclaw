@@ -7,6 +7,7 @@ import { probeFeishu } from "./probe.js";
 import { resolveFeishuGroupToolPolicy } from "./policy.js";
 import { normalizeFeishuTarget, looksLikeFeishuId, formatFeishuTarget } from "./targets.js";
 import { sendMessageFeishu } from "./send.js";
+import { feishuMessageActions } from "./actions.js";
 import {
   listFeishuDirectoryPeers,
   listFeishuDirectoryGroups,
@@ -161,6 +162,7 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
     }),
   },
   onboarding: feishuOnboardingAdapter,
+  actions: feishuMessageActions,
   messaging: {
     normalizeTarget: normalizeFeishuTarget,
     targetResolver: {
