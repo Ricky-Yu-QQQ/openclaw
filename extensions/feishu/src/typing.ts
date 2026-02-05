@@ -5,7 +5,15 @@ import { createFeishuClient } from "./client.js";
 // Feishu emoji types for typing indicator
 // See: https://open.feishu.cn/document/server-docs/im-v1/message-reaction/emojis-introduce
 // Full list: https://github.com/go-lark/lark/blob/main/emoji.go
-const TYPING_EMOJI = "Typing"; // Typing indicator emoji
+const DEFAULT_TYPING_EMOJI = "Typing"; // Typing indicator emoji
+
+function resolveTypingEmoji(cfg: FeishuConfig | undefined): string {
+  const emoji = cfg?.typingEmoji?.trim();
+  if (!emoji) {
+    return DEFAULT_TYPING_EMOJI;
+  }
+  return emoji;
+}
 
 export type TypingIndicatorState = {
   messageId: string;
@@ -26,12 +34,13 @@ export async function addTypingIndicator(params: {
   }
 
   const client = createFeishuClient(feishuCfg);
+  const typingEmoji = resolveTypingEmoji(feishuCfg);
 
   try {
     const response = await client.im.messageReaction.create({
       path: { message_id: messageId },
       data: {
-        reaction_type: { emoji_type: TYPING_EMOJI },
+        reaction_type: { emoji_type: typingEmoji },
       },
     });
 

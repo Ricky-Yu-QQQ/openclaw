@@ -114,6 +114,9 @@ export const FeishuConfigSchema = z
     heartbeat: ChannelHeartbeatVisibilitySchema,
     renderMode: RenderModeSchema, // raw = plain text (default), card = interactive card with markdown
     tools: FeishuToolsConfigSchema,
+    typingEmoji: z.string().optional(),
+    reactionOnReceive: z.string().optional(),
+    reactionOnDone: z.string().optional(),
   })
   .strict()
   .superRefine((value, ctx) => {

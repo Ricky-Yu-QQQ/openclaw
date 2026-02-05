@@ -15,6 +15,7 @@ import {
   removeTypingIndicator,
   type TypingIndicatorState,
 } from "./typing.js";
+import { addReactionFeishu } from "./reactions.js";
 
 /**
  * Detect if text contains markdown elements that benefit from card rendering.
@@ -38,9 +39,37 @@ export type CreateFeishuReplyDispatcherParams = {
   mentionTargets?: MentionTarget[];
 };
 
+function resolveReactionEmoji(value?: string): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+  return trimmed;
+}
+
+async function addReactionIfConfigured(params: {
+  cfg: ClawdbotConfig;
+  messageId?: string;
+  emojiType?: string;
+  log?: (message: string) => void;
+}): Promise<void> {
+  const { cfg, messageId, emojiType, log } = params;
+  if (!messageId || !emojiType) {
+    return;
+  }
+  try {
+    await addReactionFeishu({ cfg, messageId, emojiType });
+  } catch (err) {
+    log?.(`feishu: add reaction failed (${emojiType}): ${String(err)}`);
+  }
+}
+
 export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherParams) {
   const core = getFeishuRuntime();
   const { cfg, agentId, chatId, replyToMessageId, mentionTargets } = params;
+  const feishuCfg = cfg.channels?.feishu as FeishuConfig | undefined;
+  const reactionOnReceive = resolveReactionEmoji(feishuCfg?.reactionOnReceive);
+  const reactionOnDone = resolveReactionEmoji(feishuCfg?.reactionOnDone);
 
   const prefixContext = createReplyPrefixContext({
     cfg,
@@ -50,6 +79,8 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
   // Feishu doesn't have a native typing indicator API.
   // We use message reactions as a typing indicator substitute.
   let typingState: TypingIndicatorState | null = null;
+  let hasDelivered = false;
+  let doneReactionSent = false;
 
   const typingCallbacks = createTypingCallbacks({
     start: async () => {
@@ -81,6 +112,15 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
     },
   });
 
+  if (reactionOnReceive) {
+    void addReactionIfConfigured({
+      cfg,
+      messageId: replyToMessageId,
+      emojiType: reactionOnReceive,
+      log: params.runtime.log,
+    });
+  }
+
   const textChunkLimit = core.channel.text.resolveTextChunkLimit({
     cfg,
     channel: "feishu",
@@ -107,8 +147,8 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
         }
 
         // Check render mode: auto (default), raw, or card
-        const feishuCfg = cfg.channels?.feishu as FeishuConfig | undefined;
         const renderMode = feishuCfg?.renderMode ?? "auto";
+        let delivered = false;
 
         // Determine if we should use card for this message
         const useCard =
@@ -129,6 +169,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
               replyToMessageId,
               mentions: isFirstChunk ? mentionTargets : undefined,
             });
+            delivered = true;
             isFirstChunk = false;
           }
         } else {
@@ -144,15 +185,33 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
               replyToMessageId,
               mentions: isFirstChunk ? mentionTargets : undefined,
             });
+            delivered = true;
             isFirstChunk = false;
           }
+        }
+        if (delivered) {
+          hasDelivered = true;
         }
       },
       onError: (err, info) => {
         params.runtime.error?.(`feishu ${info.kind} reply failed: ${String(err)}`);
         typingCallbacks.onIdle?.();
       },
-      onIdle: typingCallbacks.onIdle,
+      onIdle: async () => {
+        typingCallbacks.onIdle?.();
+        if (!hasDelivered || doneReactionSent) {
+          return;
+        }
+        doneReactionSent = true;
+        if (reactionOnDone) {
+          await addReactionIfConfigured({
+            cfg,
+            messageId: replyToMessageId,
+            emojiType: reactionOnDone,
+            log: params.runtime.log,
+          });
+        }
+      },
     });
 
   return {
