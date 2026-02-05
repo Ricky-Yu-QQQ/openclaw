@@ -4,7 +4,7 @@ import path from "path";
 import os from "os";
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
 
-const loadWebMedia = vi.fn();
+const { loadWebMedia } = vi.hoisted(() => ({ loadWebMedia: vi.fn() }));
 vi.mock("openclaw/plugin-sdk", async (importOriginal) => {
   const actual = await importOriginal<typeof import("openclaw/plugin-sdk")>();
   return { ...actual, loadWebMedia };
