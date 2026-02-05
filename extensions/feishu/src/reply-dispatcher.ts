@@ -47,6 +47,13 @@ function resolveReactionEmoji(value?: string): string | null {
   if (!trimmed) {
     return null;
   }
+  const normalized = trimmed.toUpperCase();
+  if (normalized === "GET") {
+    return "OK";
+  }
+  if (normalized === "DONE") {
+    return "CHECK";
+  }
   return trimmed;
 }
 

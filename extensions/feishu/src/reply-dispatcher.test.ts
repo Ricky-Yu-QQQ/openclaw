@@ -161,7 +161,7 @@ describe("feishu reply dispatcher", () => {
     expect(addReactionFeishu).toHaveBeenCalledWith({
       cfg: baseCfg,
       messageId: "msg_1",
-      emojiType: "GET",
+      emojiType: "OK",
     });
 
     await dispatcher.deliver({ text: "hello" } as any);
@@ -170,7 +170,7 @@ describe("feishu reply dispatcher", () => {
     expect(addReactionFeishu).toHaveBeenCalledWith({
       cfg: baseCfg,
       messageId: "msg_1",
-      emojiType: "DONE",
+      emojiType: "CHECK",
     });
   });
 });
