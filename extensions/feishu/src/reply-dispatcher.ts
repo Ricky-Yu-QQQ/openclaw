@@ -39,20 +39,13 @@ export type CreateFeishuReplyDispatcherParams = {
   mentionTargets?: MentionTarget[];
 };
 
-const DEFAULT_REACTION_ON_RECEIVE = "GET";
+const DEFAULT_REACTION_ON_RECEIVE = "Get";
 const DEFAULT_REACTION_ON_DONE = "DONE";
 
 function resolveReactionEmoji(value?: string): string | null {
   const trimmed = value?.trim();
   if (!trimmed) {
     return null;
-  }
-  const normalized = trimmed.toUpperCase();
-  if (normalized === "GET") {
-    return "OK";
-  }
-  if (normalized === "DONE") {
-    return "CHECK";
   }
   return trimmed;
 }
