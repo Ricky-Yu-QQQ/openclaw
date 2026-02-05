@@ -39,7 +39,6 @@ export type CreateFeishuReplyDispatcherParams = {
   mentionTargets?: MentionTarget[];
 };
 
-const DEFAULT_REACTION_ON_RECEIVE = "Get";
 const DEFAULT_REACTION_ON_DONE = "DONE";
 
 function resolveReactionEmoji(value?: string): string | null {
@@ -71,9 +70,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
   const core = getFeishuRuntime();
   const { cfg, agentId, chatId, replyToMessageId, mentionTargets } = params;
   const feishuCfg = cfg.channels?.feishu as FeishuConfig | undefined;
-  const reactionOnReceive = resolveReactionEmoji(
-    feishuCfg?.reactionOnReceive ?? DEFAULT_REACTION_ON_RECEIVE,
-  );
+  const reactionOnReceive = resolveReactionEmoji(feishuCfg?.reactionOnReceive);
   const reactionOnDone = resolveReactionEmoji(
     feishuCfg?.reactionOnDone ?? DEFAULT_REACTION_ON_DONE,
   );
@@ -86,7 +83,6 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
   // Feishu doesn't have a native typing indicator API.
   // We use message reactions as a typing indicator substitute.
   let typingState: TypingIndicatorState | null = null;
-  let hasDelivered = false;
   let doneReactionSent = false;
 
   const typingCallbacks = createTypingCallbacks({
@@ -155,8 +151,6 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
 
         // Check render mode: auto (default), raw, or card
         const renderMode = feishuCfg?.renderMode ?? "auto";
-        let delivered = false;
-
         // Determine if we should use card for this message
         const useCard =
           renderMode === "card" || (renderMode === "auto" && shouldUseCard(text));
@@ -176,7 +170,6 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
               replyToMessageId,
               mentions: isFirstChunk ? mentionTargets : undefined,
             });
-            delivered = true;
             isFirstChunk = false;
           }
         } else {
@@ -192,12 +185,8 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
               replyToMessageId,
               mentions: isFirstChunk ? mentionTargets : undefined,
             });
-            delivered = true;
             isFirstChunk = false;
           }
-        }
-        if (delivered) {
-          hasDelivered = true;
         }
       },
       onError: (err, info) => {
@@ -206,7 +195,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
       },
       onIdle: async () => {
         typingCallbacks.onIdle?.();
-        if (!hasDelivered || doneReactionSent) {
+        if (doneReactionSent) {
           return;
         }
         doneReactionSent = true;

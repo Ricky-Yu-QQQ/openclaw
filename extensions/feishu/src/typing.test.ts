@@ -31,6 +31,10 @@ describe("feishu typing indicator", () => {
     const state = await addTypingIndicator({ cfg, messageId: "msg" });
 
     expect(state).toEqual({ messageId: "msg", reactionId: "r1" });
+    expect(reactionCreate).toHaveBeenCalledWith({
+      path: { message_id: "msg" },
+      data: { reaction_type: { emoji_type: "Get" } },
+    });
 
     await removeTypingIndicator({ cfg, state });
     expect(reactionDelete).toHaveBeenCalled();

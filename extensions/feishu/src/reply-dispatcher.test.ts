@@ -147,10 +147,10 @@ describe("feishu reply dispatcher", () => {
     expect(sendMarkdownCardFeishu).toHaveBeenCalled();
   });
 
-  it("adds default receive and done reactions", async () => {
+  it("adds done reaction by default on idle", async () => {
     addReactionFeishu.mockResolvedValue({ reactionId: "r1" });
 
-    const { dispatcher, markDispatchIdle } = createFeishuReplyDispatcher({
+    const { markDispatchIdle } = createFeishuReplyDispatcher({
       cfg: baseCfg,
       agentId: "agent",
       runtime: { log: vi.fn(), error: vi.fn() } as any,
@@ -158,19 +158,34 @@ describe("feishu reply dispatcher", () => {
       replyToMessageId: "msg_1",
     });
 
-    expect(addReactionFeishu).toHaveBeenCalledWith({
-      cfg: baseCfg,
-      messageId: "msg_1",
-      emojiType: "Get",
-    });
-
-    await dispatcher.deliver({ text: "hello" } as any);
     markDispatchIdle();
 
     expect(addReactionFeishu).toHaveBeenCalledWith({
       cfg: baseCfg,
       messageId: "msg_1",
       emojiType: "DONE",
+    });
+  });
+
+  it("adds configured receive reaction", async () => {
+    addReactionFeishu.mockResolvedValue({ reactionId: "r1" });
+
+    const cfg = {
+      channels: { feishu: { appId: "app", appSecret: "secret", reactionOnReceive: "Get" } },
+    } as ClawdbotConfig;
+
+    createFeishuReplyDispatcher({
+      cfg,
+      agentId: "agent",
+      runtime: { log: vi.fn(), error: vi.fn() } as any,
+      chatId: "oc_1",
+      replyToMessageId: "msg_1",
+    });
+
+    expect(addReactionFeishu).toHaveBeenCalledWith({
+      cfg,
+      messageId: "msg_1",
+      emojiType: "Get",
     });
   });
 });
