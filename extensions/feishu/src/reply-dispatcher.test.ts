@@ -105,6 +105,8 @@ describe("feishu reply dispatcher", () => {
     expect(sendMessageFeishu.mock.calls[1][0].mentions).toBeUndefined();
   });
 
+
+
   it("forces card mode when renderMode is card", async () => {
     const cfg = {
       channels: { feishu: { renderMode: "card", appId: "app", appSecret: "secret" } },

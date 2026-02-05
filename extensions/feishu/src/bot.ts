@@ -23,6 +23,7 @@ import {
   extractMessageBody,
   isMentionForwardRequest,
 } from "./mention.js";
+import type { MentionTarget } from "./mention.js";
 
 // --- Permission error extraction ---
 // Extract permission grant URL from Feishu API error response.
@@ -59,6 +60,29 @@ function extractPermissionError(err: unknown): PermissionError | null {
     message: msg,
     grantUrl,
   };
+}
+
+function buildFeishuMeta(params: {
+  messageId: string;
+  senderOpenId: string;
+  mentionTargets?: MentionTarget[];
+}) {
+  const mentions =
+    params.mentionTargets?.map((mention) => ({
+      name: mention.name,
+      open_id: mention.openId,
+      key: mention.key,
+    })) ?? [];
+  return {
+    message_id: params.messageId,
+    sender_open_id: params.senderOpenId,
+    mentions,
+  };
+}
+
+function prependFeishuMeta(body: string, meta: ReturnType<typeof buildFeishuMeta>) {
+  const metaLine = `[[feishu_meta ${JSON.stringify(meta)}]]`;
+  return `${metaLine}\n${body}`;
 }
 
 // --- Sender name resolution (so the agent can distinguish who is speaking in group chats) ---
@@ -736,6 +760,13 @@ export async function handleFeishuMessage(params: {
       const targetNames = ctx.mentionTargets.map((t) => t.name).join(", ");
       messageBody += `\n\n[System: Your reply will automatically @mention: ${targetNames}. Do not write @xxx yourself.]`;
     }
+
+    const meta = buildFeishuMeta({
+      messageId: ctx.messageId,
+      senderOpenId: ctx.senderOpenId,
+      mentionTargets: ctx.mentionTargets,
+    });
+    messageBody = prependFeishuMeta(messageBody, meta);
 
     const envelopeFrom = isGroup ? `${ctx.chatId}:${ctx.senderOpenId}` : ctx.senderOpenId;
 

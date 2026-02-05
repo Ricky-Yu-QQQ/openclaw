@@ -66,6 +66,7 @@ Optional messaging permissions:
 - `im:message:update` (edit messages)
 - `im:message:recall` (recall messages)
 - `im:message.reactions:read` (read reactions)
+- Message urgent permissions (app/SMS/phone), as configured in Feishu Open Platform
 
 Tool permissions, read-only minimum:
 
@@ -90,6 +91,9 @@ Tool permissions, read-write optional:
 - `feishu_bitable`: read and write bitable records.
 - `feishu_perm`: manage permissions and sharing (disabled by default).
 - `feishu_app_scopes`: list current app permission scopes.
+- `feishu_urgent`: trigger message urgent notifications (app/SMS/phone).
+  - When your message @mentions users, the bot reply will be marked urgent for those users (app).
+  - Keyword command (no LLM): send `加急消息 <内容>` with @mentions to trigger urgent reply immediately.
 
 Tools can be toggled via `channels.feishu.tools`.
 
@@ -125,6 +129,7 @@ channels:
       drive: true
       perm: false
       scopes: true
+      urgent: true
 ```
 
 ## Render mode

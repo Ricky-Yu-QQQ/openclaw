@@ -66,6 +66,7 @@ const TOOL_PROFILES: Record<ToolProfileId, ToolProfilePolicy> = {
   messaging: {
     allow: [
       "group:messaging",
+      "feishu_urgent",
       "sessions_list",
       "sessions_history",
       "sessions_send",

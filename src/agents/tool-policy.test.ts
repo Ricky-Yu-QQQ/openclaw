@@ -20,6 +20,11 @@ describe("tool-policy", () => {
     expect(resolveToolProfilePolicy("nope")).toBeUndefined();
   });
 
+  it("includes feishu_urgent in messaging profile", () => {
+    const messaging = resolveToolProfilePolicy("messaging");
+    expect(messaging?.allow).toContain("feishu_urgent");
+  });
+
   it("includes core tool groups in group:openclaw", () => {
     const group = TOOL_GROUPS["group:openclaw"];
     expect(group).toContain("browser");

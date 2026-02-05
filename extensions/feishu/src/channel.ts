@@ -56,6 +56,8 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
     messageToolHints: () => [
       "- Feishu targeting: omit `target` to reply to the current conversation (auto-inferred). Explicit targets: `user:open_id` or `chat:chat_id`.",
       "- Feishu supports interactive cards for rich messages.",
+      "- Inbound messages include `[[feishu_meta {...}]]` with message_id, sender_open_id, and mentions (name + open_id). Use that for feishu_urgent.",
+      "- For scheduled reminders, use cron to schedule a future agent turn that sends a message (message tool) and then calls feishu_urgent with the returned messageId.",
     ],
   },
   groups: {

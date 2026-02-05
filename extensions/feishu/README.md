@@ -48,6 +48,7 @@ openclaw plugins update feishu
 | `im:message:update` | Edit | Update/edit sent messages |
 | `im:message:recall` | Recall | Recall sent messages |
 | `im:message.reactions:read` | Reactions | View message reactions |
+| Message urgent permissions | Urgent | Enable app/SMS/phone urgent notifications |
 
 #### Tool Permissions
 
@@ -178,6 +179,9 @@ channels:
 - **Wiki tools**: Navigate knowledge bases, list spaces, get node details, search, create/move/rename nodes
 - **Drive tools**: List folders, get file info, create folders, move/delete files
 - **Bitable tools**: Read/write bitable (多维表格) records, supports both `/base/` and `/wiki/` URLs
+- **Urgent tools**: Trigger message urgent notifications (app/SMS/phone)
+  - If your message @mentions users, the bot reply is marked urgent for those users (app).
+  - Keyword command (no LLM): send `加急消息 <内容>` with @mentions to trigger urgent reply immediately.
 - **@mention forwarding**: When you @mention someone in your message, the bot's reply will automatically @mention them too
 - **Permission error notification**: When the bot encounters a Feishu API permission error, it automatically notifies the user with the permission grant URL
 
@@ -274,6 +278,7 @@ openclaw plugins update feishu
 | `im:message:update` | 编辑 | 更新/编辑已发送消息 |
 | `im:message:recall` | 撤回 | 撤回已发送消息 |
 | `im:message.reactions:read` | 表情 | 查看消息表情回复 |
+| 消息加急权限 | 加急 | 启用应用内/短信/电话加急通知 |
 
 #### 工具权限
 
@@ -404,6 +409,9 @@ channels:
 - **知识库工具**：浏览知识库、列出空间、获取节点详情、搜索、创建/移动/重命名节点
 - **云空间工具**：列出文件夹、获取文件信息、创建文件夹、移动/删除文件
 - **多维表格工具**：读写多维表格记录，支持 `/base/` 和 `/wiki/` 两种链接格式
+- **加急工具**：触发消息加急通知（应用内/短信/电话）
+  - 若消息里 @ 提到某人，机器人回复会对这些人触发应用内加急提醒。
+  - 关键字命令（不经过 LLM）：发送 `加急消息 <内容>` 并 @ 人，可直接触发加急回复。
 - **@ 转发功能**：在消息中 @ 某人，机器人的回复会自动 @ 该用户
 - **权限错误提示**：当机器人遇到飞书 API 权限错误时，会自动通知用户并提供权限授权链接
 

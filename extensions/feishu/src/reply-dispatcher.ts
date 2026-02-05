@@ -49,6 +49,8 @@ function resolveReactionEmoji(value?: string): string | null {
   return trimmed;
 }
 
+
+
 async function addReactionIfConfigured(params: {
   cfg: ClawdbotConfig;
   messageId?: string;
@@ -164,7 +166,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
           const chunks = core.channel.text.chunkTextWithMode(text, textChunkLimit, chunkMode);
           params.runtime.log?.(`feishu deliver: sending ${chunks.length} card chunks to ${chatId}`);
           for (const chunk of chunks) {
-            await sendMarkdownCardFeishu({
+            const result = await sendMarkdownCardFeishu({
               cfg,
               to: chatId,
               text: chunk,
@@ -180,7 +182,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
           const chunks = core.channel.text.chunkTextWithMode(converted, textChunkLimit, chunkMode);
           params.runtime.log?.(`feishu deliver: sending ${chunks.length} text chunks to ${chatId}`);
           for (const chunk of chunks) {
-            await sendMessageFeishu({
+            const result = await sendMessageFeishu({
               cfg,
               to: chatId,
               text: chunk,

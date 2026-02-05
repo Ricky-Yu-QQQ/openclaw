@@ -222,4 +222,31 @@ describe("feishu bot", () => {
     expect(core.channel.reply.dispatchReplyFromConfig).toHaveBeenCalledTimes(2);
     expect(clearHistoryEntriesIfEnabled).toHaveBeenCalled();
   });
+
+  it("adds feishu metadata to the inbound body", async () => {
+    const cfg = {
+      channels: { feishu: { appId: "app", appSecret: "secret", dmPolicy: "open", allowFrom: ["*"] } },
+    } as ClawdbotConfig;
+
+    const event = buildEvent({
+      chatType: "p2p",
+      mentions: [{ key: "@_user", id: { open_id: "ou_target" }, name: "Alice" }],
+      content: JSON.stringify({ text: "紧急上会 @_user" }),
+    });
+
+    await handleFeishuMessage({
+      cfg,
+      event: event as any,
+      runtime: { log: vi.fn(), error: vi.fn() } as any,
+      botOpenId: "ou_bot",
+    });
+
+    const core = (await import("./runtime.js")).getFeishuRuntime();
+    const call = (core.channel.reply.dispatchReplyFromConfig as any).mock.calls[0][0];
+    const body: string = call.ctx.Body;
+    expect(body).toContain("[[feishu_meta");
+    expect(body).toContain("\"message_id\":\"msg_1\"");
+    expect(body).toContain("\"sender_open_id\":\"ou_sender\"");
+    expect(body).toContain("\"open_id\":\"ou_target\"");
+  });
 });
