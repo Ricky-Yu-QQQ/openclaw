@@ -39,6 +39,9 @@ export type CreateFeishuReplyDispatcherParams = {
   mentionTargets?: MentionTarget[];
 };
 
+const DEFAULT_REACTION_ON_RECEIVE = "GET";
+const DEFAULT_REACTION_ON_DONE = "DONE";
+
 function resolveReactionEmoji(value?: string): string | null {
   const trimmed = value?.trim();
   if (!trimmed) {
@@ -68,8 +71,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
   const core = getFeishuRuntime();
   const { cfg, agentId, chatId, replyToMessageId, mentionTargets } = params;
   const feishuCfg = cfg.channels?.feishu as FeishuConfig | undefined;
-  const reactionOnReceive = resolveReactionEmoji(feishuCfg?.reactionOnReceive);
-  const reactionOnDone = resolveReactionEmoji(feishuCfg?.reactionOnDone);
+  const reactionOnReceive = resolveReactionEmoji(
+    feishuCfg?.reactionOnReceive ?? DEFAULT_REACTION_ON_RECEIVE,
+  );
+  const reactionOnDone = resolveReactionEmoji(
+    feishuCfg?.reactionOnDone ?? DEFAULT_REACTION_ON_DONE,
+  );
 
   const prefixContext = createReplyPrefixContext({
     cfg,

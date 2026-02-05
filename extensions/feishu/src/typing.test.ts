@@ -36,6 +36,20 @@ describe("feishu typing indicator", () => {
     expect(reactionDelete).toHaveBeenCalled();
   });
 
+  it("uses configured typing emoji", async () => {
+    reactionCreate.mockResolvedValue({ data: { reaction_id: "r1" } });
+
+    const cfg = {
+      channels: { feishu: { appId: "app", appSecret: "secret", typingEmoji: "GET" } },
+    } as ClawdbotConfig;
+    await addTypingIndicator({ cfg, messageId: "msg" });
+
+    expect(reactionCreate).toHaveBeenCalledWith({
+      path: { message_id: "msg" },
+      data: { reaction_type: { emoji_type: "GET" } },
+    });
+  });
+
   it("swallows errors when adding/removing", async () => {
     reactionCreate.mockRejectedValue(new Error("boom"));
     reactionDelete.mockRejectedValue(new Error("boom"));

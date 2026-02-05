@@ -17,10 +17,15 @@ vi.mock("openclaw/plugin-sdk", () => ({
 
 const sendMessageFeishu = vi.fn();
 const sendMarkdownCardFeishu = vi.fn();
+const addReactionFeishu = vi.fn();
 
 vi.mock("./send.js", () => ({
   sendMessageFeishu: (...args: any[]) => sendMessageFeishu(...args),
   sendMarkdownCardFeishu: (...args: any[]) => sendMarkdownCardFeishu(...args),
+}));
+
+vi.mock("./reactions.js", () => ({
+  addReactionFeishu: (...args: any[]) => addReactionFeishu(...args),
 }));
 
 vi.mock("./typing.js", () => ({
@@ -38,6 +43,7 @@ describe("feishu reply dispatcher", () => {
   beforeEach(() => {
     sendMessageFeishu.mockReset();
     sendMarkdownCardFeishu.mockReset();
+    addReactionFeishu.mockReset();
 
     setFeishuRuntime({
       channel: {
@@ -49,11 +55,14 @@ describe("feishu reply dispatcher", () => {
           chunkTextWithMode: (text: string) => [text.slice(0, 3), text.slice(3)],
         },
         reply: {
-          createReplyDispatcherWithTyping: ({ deliver }: any) => ({
-            dispatcher: { deliver },
-            replyOptions: { onModelSelected: vi.fn() },
-            markDispatchIdle: vi.fn(),
-          }),
+          createReplyDispatcherWithTyping: ({ deliver, onIdle }: any) => {
+            const markDispatchIdle = () => onIdle?.();
+            return {
+              dispatcher: { deliver },
+              replyOptions: { onModelSelected: vi.fn() },
+              markDispatchIdle,
+            };
+          },
           resolveHumanDelayConfig: () => ({ enabled: false }),
         },
       },
@@ -136,5 +145,32 @@ describe("feishu reply dispatcher", () => {
     const tableText = `| A | B |\n| - | - |\n| 1 | 2 |`;
     await dispatcher.deliver({ text: tableText } as any);
     expect(sendMarkdownCardFeishu).toHaveBeenCalled();
+  });
+
+  it("adds default receive and done reactions", async () => {
+    addReactionFeishu.mockResolvedValue({ reactionId: "r1" });
+
+    const { dispatcher, markDispatchIdle } = createFeishuReplyDispatcher({
+      cfg: baseCfg,
+      agentId: "agent",
+      runtime: { log: vi.fn(), error: vi.fn() } as any,
+      chatId: "oc_1",
+      replyToMessageId: "msg_1",
+    });
+
+    expect(addReactionFeishu).toHaveBeenCalledWith({
+      cfg: baseCfg,
+      messageId: "msg_1",
+      emojiType: "GET",
+    });
+
+    await dispatcher.deliver({ text: "hello" } as any);
+    markDispatchIdle();
+
+    expect(addReactionFeishu).toHaveBeenCalledWith({
+      cfg: baseCfg,
+      messageId: "msg_1",
+      emojiType: "DONE",
+    });
   });
 });
