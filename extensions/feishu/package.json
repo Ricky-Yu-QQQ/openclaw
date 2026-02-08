@@ -1,28 +1,42 @@
 {
   "name": "@openclaw/feishu",
   "version": "0.1.7",
-  "type": "module",
   "description": "OpenClaw Feishu/Lark channel plugin",
+  "keywords": [
+    "ai",
+    "chatbot",
+    "claude",
+    "feishu",
+    "lark",
+    "openclaw",
+    "飞书"
+  ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/m1heng/clawdbot-feishu.git"
+  },
   "files": [
     "index.ts",
     "src",
     "skills",
     "openclaw.plugin.json"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/m1heng/clawdbot-feishu.git"
+  "type": "module",
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.30.0",
+    "@sinclair/typebox": "^0.34.48",
+    "zod": "^4.3.6"
   },
-  "keywords": [
-    "openclaw",
-    "feishu",
-    "lark",
-    "飞书",
-    "chatbot",
-    "ai",
-    "claude"
-  ],
+  "devDependencies": {
+    "@types/node": "^25.0.10",
+    "openclaw": "2026.1.29",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.1.29"
+  },
   "openclaw": {
     "extensions": [
       "./index.ts"
@@ -44,19 +58,5 @@
       "localPath": ".",
       "defaultChoice": "npm"
     }
-  },
-  "dependencies": {
-    "@larksuiteoapi/node-sdk": "^1.30.0",
-    "@sinclair/typebox": "^0.34.48",
-    "zod": "^4.3.6"
-  },
-  "devDependencies": {
-    "@types/node": "^25.0.10",
-    "openclaw": "2026.1.29",
-    "tsx": "^4.21.0",
-    "typescript": "^5.7.0"
-  },
-  "peerDependencies": {
-    "openclaw": ">=2026.1.29"
   }
 }

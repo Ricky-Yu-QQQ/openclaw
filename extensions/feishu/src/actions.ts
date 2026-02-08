@@ -1,10 +1,10 @@
+import type { ClawdbotConfig } from "openclaw/plugin-sdk";
 import {
   jsonResult,
   readStringParam,
   type ChannelMessageActionAdapter,
   type ChannelMessageActionName,
 } from "openclaw/plugin-sdk";
-import type { ClawdbotConfig } from "openclaw/plugin-sdk";
 import type { FeishuConfig } from "./types.js";
 import { addReactionFeishu, listReactionsFeishu, removeReactionFeishu } from "./reactions.js";
 

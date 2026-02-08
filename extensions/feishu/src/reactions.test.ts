@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const reactionCreate = vi.fn();
 const reactionDelete = vi.fn();
@@ -7,7 +7,13 @@ const reactionList = vi.fn();
 
 vi.mock("./client.js", () => ({
   createFeishuClient: vi.fn(() => ({
-    im: { messageReaction: { create: (...args: any[]) => reactionCreate(...args), delete: (...args: any[]) => reactionDelete(...args), list: (...args: any[]) => reactionList(...args) } },
+    im: {
+      messageReaction: {
+        create: (...args: any[]) => reactionCreate(...args),
+        delete: (...args: any[]) => reactionDelete(...args),
+        list: (...args: any[]) => reactionList(...args),
+      },
+    },
   })),
 }));
 
@@ -39,8 +45,18 @@ describe("feishu reactions", () => {
       code: 0,
       data: {
         items: [
-          { reaction_id: "r1", reaction_type: { emoji_type: "SMILE" }, operator_type: "app", operator_id: { open_id: "ou_1" } },
-          { reaction_id: "r2", reaction_type: { emoji_type: "HEART" }, operator_type: "user", operator_id: { user_id: "u2" } },
+          {
+            reaction_id: "r1",
+            reaction_type: { emoji_type: "SMILE" },
+            operator_type: "app",
+            operator_id: { open_id: "ou_1" },
+          },
+          {
+            reaction_id: "r2",
+            reaction_type: { emoji_type: "HEART" },
+            operator_type: "user",
+            operator_id: { user_id: "u2" },
+          },
         ],
       },
     });

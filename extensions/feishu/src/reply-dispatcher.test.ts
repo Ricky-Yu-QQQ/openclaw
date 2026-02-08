@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setFeishuRuntime } from "./runtime.js";
 
 vi.mock("openclaw/plugin-sdk", () => ({
@@ -104,8 +104,6 @@ describe("feishu reply dispatcher", () => {
     ]);
     expect(sendMessageFeishu.mock.calls[1][0].mentions).toBeUndefined();
   });
-
-
 
   it("forces card mode when renderMode is card", async () => {
     const cfg = {

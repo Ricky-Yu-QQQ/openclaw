@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setFeishuRuntime } from "./runtime.js";
 
 const messageGet = vi.fn();

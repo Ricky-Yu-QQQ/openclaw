@@ -1,7 +1,7 @@
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
-import { createFeishuClient } from "./client.js";
-import type { FeishuConfig } from "./types.js";
 import type * as Lark from "@larksuiteoapi/node-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import type { FeishuConfig } from "./types.js";
+import { createFeishuClient } from "./client.js";
 import { FeishuPermSchema, type FeishuPermParams } from "./perm-schema.js";
 import { resolveToolsConfig } from "./tools-config.js";
 

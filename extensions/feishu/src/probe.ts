@@ -1,6 +1,6 @@
 import type { FeishuConfig, FeishuProbeResult } from "./types.js";
-import { createFeishuClient } from "./client.js";
 import { resolveFeishuCredentials } from "./accounts.js";
+import { createFeishuClient } from "./client.js";
 
 export async function probeFeishu(cfg?: FeishuConfig): Promise<FeishuProbeResult> {
   const creds = resolveFeishuCredentials(cfg);

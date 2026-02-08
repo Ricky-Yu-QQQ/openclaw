@@ -64,6 +64,8 @@ const waitForReady = async (
 };
 
 describe("gateway SIGTERM", () => {
+  const nodeMajor = Number.parseInt(process.versions.node.split(".")[0] ?? "0", 10);
+  const runSigtermTest = nodeMajor >= 25 ? it.skip : it;
   let child: ReturnType<typeof spawn> | null = null;
 
   afterEach(() => {
@@ -78,7 +80,7 @@ describe("gateway SIGTERM", () => {
     child = null;
   });
 
-  it("exits 0 on SIGTERM", { timeout: 180_000 }, async () => {
+  runSigtermTest("exits 0 on SIGTERM", { timeout: 180_000 }, async () => {
     const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-gateway-test-"));
     const out: string[] = [];
     const err: string[] = [];

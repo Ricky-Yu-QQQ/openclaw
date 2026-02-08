@@ -33,6 +33,11 @@ describe("buildWorkspaceSkillSnapshot", () => {
     const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-"));
 
     const snapshot = buildWorkspaceSkillSnapshot(workspaceDir, {
+      config: {
+        plugins: {
+          enabled: false,
+        },
+      },
       managedSkillsDir: path.join(workspaceDir, ".managed"),
       bundledSkillsDir: path.join(workspaceDir, ".bundled"),
     });
@@ -56,6 +61,11 @@ describe("buildWorkspaceSkillSnapshot", () => {
     });
 
     const snapshot = buildWorkspaceSkillSnapshot(workspaceDir, {
+      config: {
+        plugins: {
+          enabled: false,
+        },
+      },
       managedSkillsDir: path.join(workspaceDir, ".managed"),
       bundledSkillsDir: path.join(workspaceDir, ".bundled"),
     });

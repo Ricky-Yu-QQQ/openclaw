@@ -1,5 +1,5 @@
-import { describe, expect, it, beforeEach, vi } from "vitest";
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
+import { describe, expect, it, beforeEach, vi } from "vitest";
 
 let userListImpl: any;
 let chatListImpl: any;
@@ -29,7 +29,7 @@ describe("feishu directory", () => {
       channels: {
         feishu: {
           allowFrom: ["*", " user:ou_1 ", "ou_2"],
-          dms: { "ou_3": {} },
+          dms: { ou_3: {} },
         },
       },
     } as ClawdbotConfig;
@@ -46,7 +46,7 @@ describe("feishu directory", () => {
     const cfg = {
       channels: {
         feishu: {
-          groups: { "oc_1": {}, " * ": {} },
+          groups: { oc_1: {}, " * ": {} },
           groupAllowFrom: ["oc_2", "*"],
         },
       },
@@ -75,7 +75,12 @@ describe("feishu directory", () => {
 
     userListImpl = vi.fn().mockResolvedValue({
       code: 0,
-      data: { items: [{ open_id: "ou_1", name: "Alice" }, { open_id: "ou_2", name: "Bob" }] },
+      data: {
+        items: [
+          { open_id: "ou_1", name: "Alice" },
+          { open_id: "ou_2", name: "Bob" },
+        ],
+      },
     });
 
     const peers = await listFeishuDirectoryPeersLive({ cfg, query: "ali" });
@@ -100,7 +105,12 @@ describe("feishu directory", () => {
 
     chatListImpl = vi.fn().mockResolvedValue({
       code: 0,
-      data: { items: [{ chat_id: "oc_1", name: "Alpha" }, { chat_id: "oc_2", name: "Beta" }] },
+      data: {
+        items: [
+          { chat_id: "oc_1", name: "Alpha" },
+          { chat_id: "oc_2", name: "Beta" },
+        ],
+      },
     });
 
     const groups = await listFeishuDirectoryGroupsLive({ cfg, query: "beta" });

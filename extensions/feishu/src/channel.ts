@@ -2,11 +2,6 @@ import type { ChannelPlugin, ClawdbotConfig } from "openclaw/plugin-sdk";
 import { DEFAULT_ACCOUNT_ID, PAIRING_APPROVED_MESSAGE } from "openclaw/plugin-sdk";
 import type { ResolvedFeishuAccount, FeishuConfig } from "./types.js";
 import { resolveFeishuAccount, resolveFeishuCredentials } from "./accounts.js";
-import { feishuOutbound } from "./outbound.js";
-import { probeFeishu } from "./probe.js";
-import { resolveFeishuGroupToolPolicy } from "./policy.js";
-import { normalizeFeishuTarget, looksLikeFeishuId, formatFeishuTarget } from "./targets.js";
-import { sendMessageFeishu } from "./send.js";
 import { feishuMessageActions } from "./actions.js";
 import {
   listFeishuDirectoryPeers,
@@ -15,6 +10,11 @@ import {
   listFeishuDirectoryGroupsLive,
 } from "./directory.js";
 import { feishuOnboardingAdapter } from "./onboarding.js";
+import { feishuOutbound } from "./outbound.js";
+import { resolveFeishuGroupToolPolicy } from "./policy.js";
+import { probeFeishu } from "./probe.js";
+import { sendMessageFeishu } from "./send.js";
+import { normalizeFeishuTarget, looksLikeFeishuId, formatFeishuTarget } from "./targets.js";
 
 const meta = {
   id: "feishu",
@@ -81,7 +81,10 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
         dmPolicy: { type: "string", enum: ["open", "pairing", "allowlist"] },
         allowFrom: { type: "array", items: { oneOf: [{ type: "string" }, { type: "number" }] } },
         groupPolicy: { type: "string", enum: ["open", "allowlist", "disabled"] },
-        groupAllowFrom: { type: "array", items: { oneOf: [{ type: "string" }, { type: "number" }] } },
+        groupAllowFrom: {
+          type: "array",
+          items: { oneOf: [{ type: "string" }, { type: "number" }] },
+        },
         requireMention: { type: "boolean" },
         historyLimit: { type: "integer", minimum: 0 },
         dmHistoryLimit: { type: "integer", minimum: 0 },
@@ -142,7 +145,9 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
   security: {
     collectWarnings: ({ cfg }) => {
       const feishuCfg = cfg.channels?.feishu as FeishuConfig | undefined;
-      const defaultGroupPolicy = (cfg.channels as Record<string, { groupPolicy?: string }> | undefined)?.defaults?.groupPolicy;
+      const defaultGroupPolicy = (
+        cfg.channels as Record<string, { groupPolicy?: string }> | undefined
+      )?.defaults?.groupPolicy;
       const groupPolicy = feishuCfg?.groupPolicy ?? defaultGroupPolicy ?? "allowlist";
       if (groupPolicy !== "open") return [];
       return [
@@ -174,10 +179,8 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
   },
   directory: {
     self: async () => null,
-    listPeers: async ({ cfg, query, limit }) =>
-      listFeishuDirectoryPeers({ cfg, query, limit }),
-    listGroups: async ({ cfg, query, limit }) =>
-      listFeishuDirectoryGroups({ cfg, query, limit }),
+    listPeers: async ({ cfg, query, limit }) => listFeishuDirectoryPeers({ cfg, query, limit }),
+    listGroups: async ({ cfg, query, limit }) => listFeishuDirectoryGroups({ cfg, query, limit }),
     listPeersLive: async ({ cfg, query, limit }) =>
       listFeishuDirectoryPeersLive({ cfg, query, limit }),
     listGroupsLive: async ({ cfg, query, limit }) =>

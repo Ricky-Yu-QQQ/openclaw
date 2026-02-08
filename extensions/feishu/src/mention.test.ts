@@ -131,9 +131,7 @@ describe("mention helpers", () => {
     expect(formatMentionForText(target)).toBe('<at user_id="user_open_id">Alice</at>');
     expect(formatMentionForCard(target)).toBe("<at id=user_open_id></at>");
 
-    expect(buildMentionedMessage([target], "hi")).toBe(
-      '<at user_id="user_open_id">Alice</at> hi',
-    );
+    expect(buildMentionedMessage([target], "hi")).toBe('<at user_id="user_open_id">Alice</at> hi');
     expect(buildMentionedCardContent([target], "hi")).toBe("<at id=user_open_id></at> hi");
     expect(buildMentionedCardContent([], "plain")).toBe("plain");
   });

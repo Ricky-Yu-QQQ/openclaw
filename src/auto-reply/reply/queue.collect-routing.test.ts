@@ -302,8 +302,8 @@ describe("followup queue collect routing", () => {
       createRun({
         prompt: "one",
         messageId: "m1",
-        originatingChannel: "feishu",
-        originatingTo: "chat:oc_1",
+        originatingChannel: "slack",
+        originatingTo: "channel:C1",
       }),
       settings,
     );
@@ -312,8 +312,8 @@ describe("followup queue collect routing", () => {
       createRun({
         prompt: "two",
         messageId: "m2",
-        originatingChannel: "feishu",
-        originatingTo: "chat:oc_1",
+        originatingChannel: "slack",
+        originatingTo: "channel:C1",
       }),
       settings,
     );

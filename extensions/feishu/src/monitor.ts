@@ -1,9 +1,9 @@
-import * as Lark from "@larksuiteoapi/node-sdk";
 import type { ClawdbotConfig, RuntimeEnv, HistoryEntry } from "openclaw/plugin-sdk";
+import * as Lark from "@larksuiteoapi/node-sdk";
 import type { FeishuConfig } from "./types.js";
-import { createFeishuWSClient, createEventDispatcher } from "./client.js";
 import { resolveFeishuCredentials } from "./accounts.js";
 import { handleFeishuMessage, type FeishuMessageEvent, type FeishuBotAddedEvent } from "./bot.js";
+import { createFeishuWSClient, createEventDispatcher } from "./client.js";
 import { probeFeishu } from "./probe.js";
 
 export type MonitorFeishuOpts = {
@@ -48,7 +48,12 @@ export async function monitorFeishuProvider(opts: MonitorFeishuOpts = {}): Promi
   const connectionMode = feishuCfg?.connectionMode ?? "websocket";
 
   if (connectionMode === "websocket") {
-    return monitorWebSocket({ cfg, feishuCfg: feishuCfg!, runtime: opts.runtime, abortSignal: opts.abortSignal });
+    return monitorWebSocket({
+      cfg,
+      feishuCfg: feishuCfg!,
+      runtime: opts.runtime,
+      abortSignal: opts.abortSignal,
+    });
   }
 
   log("feishu: webhook mode not implemented in monitor, use HTTP server directly");

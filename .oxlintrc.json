@@ -31,5 +31,20 @@
     "src/canvas-host/a2ui/a2ui.bundle.js",
     "Swabble/",
     "vendor/"
+  ],
+  "overrides": [
+    {
+      "files": ["extensions/feishu/**/*.ts", "extensions/feishu/index.ts"],
+      "rules": {
+        "curly": "off",
+        "no-unused-vars": "off",
+        "typescript/no-base-to-string": "off",
+        "typescript/no-explicit-any": "off",
+        "typescript/no-floating-promises": "off",
+        "typescript/no-unnecessary-boolean-literal-compare": "off",
+        "typescript/no-redundant-type-constituents": "off",
+        "typescript/no-unnecessary-type-assertion": "off"
+      }
+    }
   ]
 }

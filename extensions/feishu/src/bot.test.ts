@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setFeishuRuntime } from "./runtime.js";
 
 const contactGet = vi.fn();
@@ -28,18 +28,20 @@ vi.mock("./reply-dispatcher.js", () => ({
 }));
 
 vi.mock("openclaw/plugin-sdk", () => ({
-  buildPendingHistoryContextFromMap: vi.fn(({ currentMessage }: any) => `history:${currentMessage}`),
+  buildPendingHistoryContextFromMap: vi.fn(
+    ({ currentMessage }: any) => `history:${currentMessage}`,
+  ),
   recordPendingHistoryEntryIfEnabled: vi.fn(),
   clearHistoryEntriesIfEnabled: vi.fn(),
   DEFAULT_GROUP_HISTORY_LIMIT: 20,
 }));
 
-import { parseFeishuMessageEvent, handleFeishuMessage } from "./bot.js";
 import {
   buildPendingHistoryContextFromMap,
   recordPendingHistoryEntryIfEnabled,
   clearHistoryEntriesIfEnabled,
 } from "openclaw/plugin-sdk";
+import { parseFeishuMessageEvent, handleFeishuMessage } from "./bot.js";
 
 function buildEvent(params: {
   chatType: "p2p" | "group";
@@ -73,7 +75,9 @@ describe("feishu bot", () => {
     downloadMessageResourceFeishu.mockReset();
     createFeishuReplyDispatcher.mockReset();
 
-    const dispatchReplyFromConfig = vi.fn().mockResolvedValue({ queuedFinal: true, counts: { final: 1 } });
+    const dispatchReplyFromConfig = vi
+      .fn()
+      .mockResolvedValue({ queuedFinal: true, counts: { final: 1 } });
     setFeishuRuntime({
       channel: {
         routing: {
@@ -129,20 +133,29 @@ describe("feishu bot", () => {
     });
 
     const ctx = parseFeishuMessageEvent(event as any, "ou_bot");
-    expect(ctx.mentionTargets).toEqual([
-      { openId: "ou_target", name: "Alice", key: "@_user" },
-    ]);
+    expect(ctx.mentionTargets).toEqual([{ openId: "ou_target", name: "Alice", key: "@_user" }]);
     expect(ctx.mentionMessageBody).toBe("hi");
   });
 
   it("skips DM when allowlist rejects sender", async () => {
     const cfg = {
-      channels: { feishu: { appId: "app", appSecret: "secret", dmPolicy: "allowlist", allowFrom: ["ou_allowed"] } },
+      channels: {
+        feishu: {
+          appId: "app",
+          appSecret: "secret",
+          dmPolicy: "allowlist",
+          allowFrom: ["ou_allowed"],
+        },
+      },
     } as ClawdbotConfig;
 
     const event = buildEvent({ chatType: "p2p" });
 
-    await handleFeishuMessage({ cfg, event: event as any, runtime: { log: vi.fn(), error: vi.fn() } as any });
+    await handleFeishuMessage({
+      cfg,
+      event: event as any,
+      runtime: { log: vi.fn(), error: vi.fn() } as any,
+    });
 
     const core = (await import("./runtime.js")).getFeishuRuntime();
     expect(core.channel.reply.dispatchReplyFromConfig).not.toHaveBeenCalled();
@@ -150,12 +163,23 @@ describe("feishu bot", () => {
 
   it("skips group when group allowlist rejects chat", async () => {
     const cfg = {
-      channels: { feishu: { appId: "app", appSecret: "secret", groupPolicy: "allowlist", groupAllowFrom: ["oc_allowed"] } },
+      channels: {
+        feishu: {
+          appId: "app",
+          appSecret: "secret",
+          groupPolicy: "allowlist",
+          groupAllowFrom: ["oc_allowed"],
+        },
+      },
     } as ClawdbotConfig;
 
     const event = buildEvent({ chatType: "group" });
 
-    await handleFeishuMessage({ cfg, event: event as any, runtime: { log: vi.fn(), error: vi.fn() } as any });
+    await handleFeishuMessage({
+      cfg,
+      event: event as any,
+      runtime: { log: vi.fn(), error: vi.fn() } as any,
+    });
 
     const core = (await import("./runtime.js")).getFeishuRuntime();
     expect(core.channel.reply.dispatchReplyFromConfig).not.toHaveBeenCalled();
@@ -163,7 +187,9 @@ describe("feishu bot", () => {
 
   it("records history when mention required but missing", async () => {
     const cfg = {
-      channels: { feishu: { appId: "app", appSecret: "secret", groupPolicy: "open", requireMention: true } },
+      channels: {
+        feishu: { appId: "app", appSecret: "secret", groupPolicy: "open", requireMention: true },
+      },
     } as ClawdbotConfig;
 
     const event = buildEvent({ chatType: "group" });
@@ -190,11 +216,16 @@ describe("feishu bot", () => {
       },
     });
 
-    downloadMessageResourceFeishu.mockResolvedValue({ buffer: Buffer.from("img"), contentType: "image/png" });
+    downloadMessageResourceFeishu.mockResolvedValue({
+      buffer: Buffer.from("img"),
+      contentType: "image/png",
+    });
     getMessageFeishu.mockResolvedValue({ content: "quoted" });
 
     const cfg = {
-      channels: { feishu: { appId: "app", appSecret: "secret", groupPolicy: "open", requireMention: false } },
+      channels: {
+        feishu: { appId: "app", appSecret: "secret", groupPolicy: "open", requireMention: false },
+      },
     } as ClawdbotConfig;
 
     const event = buildEvent({
@@ -225,7 +256,9 @@ describe("feishu bot", () => {
 
   it("adds feishu metadata to the inbound body", async () => {
     const cfg = {
-      channels: { feishu: { appId: "app", appSecret: "secret", dmPolicy: "open", allowFrom: ["*"] } },
+      channels: {
+        feishu: { appId: "app", appSecret: "secret", dmPolicy: "open", allowFrom: ["*"] },
+      },
     } as ClawdbotConfig;
 
     const event = buildEvent({
@@ -245,8 +278,8 @@ describe("feishu bot", () => {
     const call = (core.channel.reply.dispatchReplyFromConfig as any).mock.calls[0][0];
     const body: string = call.ctx.Body;
     expect(body).toContain("[[feishu_meta");
-    expect(body).toContain("\"message_id\":\"msg_1\"");
-    expect(body).toContain("\"sender_open_id\":\"ou_sender\"");
-    expect(body).toContain("\"open_id\":\"ou_target\"");
+    expect(body).toContain('"message_id":"msg_1"');
+    expect(body).toContain('"sender_open_id":"ou_sender"');
+    expect(body).toContain('"open_id":"ou_target"');
   });
 });

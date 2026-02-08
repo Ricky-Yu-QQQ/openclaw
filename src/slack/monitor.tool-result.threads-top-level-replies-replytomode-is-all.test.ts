@@ -107,7 +107,7 @@ describe("monitorSlackProvider tool results", () => {
       SessionKey?: string;
       ParentSessionKey?: string;
     };
-    expect(ctx.SessionKey).toBe("agent:main:main:thread:123");
+    expect(ctx.SessionKey).toBe("agent:main:dm:u1:thread:123");
     expect(ctx.ParentSessionKey).toBeUndefined();
   });
 

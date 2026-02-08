@@ -101,9 +101,9 @@ describe("feishu urgent tool", () => {
     await expect(tool.execute("id", { urgentType: "app", userIds: ["ou_1"] })).rejects.toThrow(
       /messageId required/i,
     );
-    await expect(
-      tool.execute("id", { messageId: "msg_1", urgentType: "app" }),
-    ).rejects.toThrow(/userIds required/i);
+    await expect(tool.execute("id", { messageId: "msg_1", urgentType: "app" })).rejects.toThrow(
+      /userIds required/i,
+    );
     await expect(
       tool.execute("id", {
         messageId: "msg_1",

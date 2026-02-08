@@ -6,16 +6,12 @@ import {
   type RuntimeEnv,
   type ReplyPayload,
 } from "openclaw/plugin-sdk";
+import type { MentionTarget } from "./mention.js";
+import type { FeishuConfig } from "./types.js";
+import { addReactionFeishu } from "./reactions.js";
 import { getFeishuRuntime } from "./runtime.js";
 import { sendMessageFeishu, sendMarkdownCardFeishu } from "./send.js";
-import type { FeishuConfig } from "./types.js";
-import type { MentionTarget } from "./mention.js";
-import {
-  addTypingIndicator,
-  removeTypingIndicator,
-  type TypingIndicatorState,
-} from "./typing.js";
-import { addReactionFeishu } from "./reactions.js";
+import { addTypingIndicator, removeTypingIndicator, type TypingIndicatorState } from "./typing.js";
 
 /**
  * Detect if text contains markdown elements that benefit from card rendering.
@@ -48,8 +44,6 @@ function resolveReactionEmoji(value?: string): string | null {
   }
   return trimmed;
 }
-
-
 
 async function addReactionIfConfigured(params: {
   cfg: ClawdbotConfig;
@@ -155,8 +149,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
         // Check render mode: auto (default), raw, or card
         const renderMode = feishuCfg?.renderMode ?? "auto";
         // Determine if we should use card for this message
-        const useCard =
-          renderMode === "card" || (renderMode === "auto" && shouldUseCard(text));
+        const useCard = renderMode === "card" || (renderMode === "auto" && shouldUseCard(text));
 
         // Only include @mentions in the first chunk (avoid duplicate @s)
         let isFirstChunk = true;

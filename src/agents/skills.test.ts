@@ -78,6 +78,7 @@ describe("buildWorkspaceSkillCommandSpecs", () => {
     });
 
     const commands = buildWorkspaceSkillCommandSpecs(workspaceDir, {
+      config: { plugins: { enabled: false } } as never,
       managedSkillsDir: path.join(workspaceDir, ".managed"),
       bundledSkillsDir: path.join(workspaceDir, ".bundled"),
       reservedNames: new Set(["help"]),
@@ -136,6 +137,7 @@ describe("buildWorkspaceSkillsPrompt", () => {
     const workspaceDir = await makeWorkspace();
 
     const prompt = buildWorkspaceSkillsPrompt(workspaceDir, {
+      config: { plugins: { enabled: false } } as never,
       managedSkillsDir: path.join(workspaceDir, ".managed"),
       bundledSkillsDir: path.join(workspaceDir, ".bundled"),
     });

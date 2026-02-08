@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import type { ChannelGroupContext } from "openclaw/plugin-sdk";
+import { describe, expect, it } from "vitest";
 import type { FeishuConfig, FeishuGroupConfig } from "./types.js";
 import {
   isFeishuGroupAllowed,

@@ -7,7 +7,6 @@
  */
 
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
-import * as lancedb from "@lancedb/lancedb";
 import { Type } from "@sinclair/typebox";
 import { randomUUID } from "node:crypto";
 import OpenAI from "openai";
@@ -37,6 +36,23 @@ type MemorySearchResult = {
   score: number;
 };
 
+type LanceDbModule = typeof import("@lancedb/lancedb");
+type LanceDbConnection = Awaited<ReturnType<LanceDbModule["connect"]>>;
+type LanceDbTable = Awaited<ReturnType<LanceDbConnection["openTable"]>>;
+
+let lanceDbModulePromise: Promise<LanceDbModule> | null = null;
+
+async function getLanceDbModule(): Promise<LanceDbModule> {
+  if (!lanceDbModulePromise) {
+    lanceDbModulePromise = import("@lancedb/lancedb").catch((error: unknown) => {
+      lanceDbModulePromise = null;
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to load LanceDB module: ${message}`);
+    });
+  }
+  return lanceDbModulePromise;
+}
+
 // ============================================================================
 // LanceDB Provider
 // ============================================================================
@@ -44,8 +60,8 @@ type MemorySearchResult = {
 const TABLE_NAME = "memories";
 
 class MemoryDB {
-  private db: lancedb.Connection | null = null;
-  private table: lancedb.Table | null = null;
+  private db: LanceDbConnection | null = null;
+  private table: LanceDbTable | null = null;
   private initPromise: Promise<void> | null = null;
 
   constructor(
@@ -66,6 +82,7 @@ class MemoryDB {
   }
 
   private async doInitialize(): Promise<void> {
+    const lancedb = await getLanceDbModule();
     this.db = await lancedb.connect(this.dbPath);
     const tables = await this.db.tableNames();
 

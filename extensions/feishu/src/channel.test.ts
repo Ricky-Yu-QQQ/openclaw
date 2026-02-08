@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
+import { describe, expect, it, vi } from "vitest";
 
 const sendMessageFeishu = vi.fn();
 vi.mock("./send.js", () => ({
@@ -53,16 +53,26 @@ describe("feishu channel plugin", () => {
   });
 
   it("collects security warnings", () => {
-    const openCfg = { channels: { feishu: { appId: "app", appSecret: "secret", groupPolicy: "open" } } } as ClawdbotConfig;
+    const openCfg = {
+      channels: { feishu: { appId: "app", appSecret: "secret", groupPolicy: "open" } },
+    } as ClawdbotConfig;
     const warnings = feishuPlugin.security?.collectWarnings?.({ cfg: openCfg } as any) ?? [];
-    expect(warnings[0]).toContain("groupPolicy=\"open\"");
+    expect(warnings[0]).toContain('groupPolicy="open"');
   });
 
   it("directory helpers call adapters", async () => {
     const peers = await feishuPlugin.directory?.listPeers?.({ cfg, query: "", limit: 10 } as any);
     const groups = await feishuPlugin.directory?.listGroups?.({ cfg, query: "", limit: 10 } as any);
-    const peersLive = await feishuPlugin.directory?.listPeersLive?.({ cfg, query: "", limit: 10 } as any);
-    const groupsLive = await feishuPlugin.directory?.listGroupsLive?.({ cfg, query: "", limit: 10 } as any);
+    const peersLive = await feishuPlugin.directory?.listPeersLive?.({
+      cfg,
+      query: "",
+      limit: 10,
+    } as any);
+    const groupsLive = await feishuPlugin.directory?.listGroupsLive?.({
+      cfg,
+      query: "",
+      limit: 10,
+    } as any);
 
     expect(peers?.[0].id).toBe("ou_1");
     expect(groups?.[0].id).toBe("oc_1");

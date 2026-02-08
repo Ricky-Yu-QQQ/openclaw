@@ -33,6 +33,11 @@ describe("loadWorkspaceSkillEntries", () => {
     await fs.mkdir(managedDir, { recursive: true });
 
     const entries = loadWorkspaceSkillEntries(workspaceDir, {
+      config: {
+        plugins: {
+          enabled: false,
+        },
+      },
       managedSkillsDir: managedDir,
       bundledSkillsDir: path.join(workspaceDir, ".bundled"),
     });

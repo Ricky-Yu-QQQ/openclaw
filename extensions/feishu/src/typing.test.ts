@@ -1,12 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const reactionCreate = vi.fn();
 const reactionDelete = vi.fn();
 
 vi.mock("./client.js", () => ({
   createFeishuClient: vi.fn(() => ({
-    im: { messageReaction: { create: (...args: any[]) => reactionCreate(...args), delete: (...args: any[]) => reactionDelete(...args) } },
+    im: {
+      messageReaction: {
+        create: (...args: any[]) => reactionCreate(...args),
+        delete: (...args: any[]) => reactionDelete(...args),
+      },
+    },
   })),
 }));
 

@@ -1,12 +1,12 @@
-import { Type } from "@sinclair/typebox";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
-import { createFeishuClient } from "./client.js";
-import type { FeishuConfig } from "./types.js";
 import type * as Lark from "@larksuiteoapi/node-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import { Type } from "@sinclair/typebox";
 import { Readable } from "stream";
+import type { FeishuConfig } from "./types.js";
+import { createFeishuClient } from "./client.js";
 import { FeishuDocSchema, type FeishuDocParams } from "./doc-schema.js";
-import { resolveToolsConfig } from "./tools-config.js";
 import { getFeishuRuntime } from "./runtime.js";
+import { resolveToolsConfig } from "./tools-config.js";
 
 // ============ Helpers ============
 
@@ -241,7 +241,8 @@ async function downloadImage(url: string, feishuCfg?: FeishuConfig): Promise<Buf
   const maxBytes = resolveDocxImageMaxBytes(feishuCfg);
   const timeoutMs = resolveFetchTimeoutMs(feishuCfg);
   const allowedHostnames = buildHostnameSet(feishuCfg?.mediaAllowedHostnames);
-  const ssrfPolicy = allowedHostnames.size > 0 ? { allowedHostnames: Array.from(allowedHostnames) } : undefined;
+  const ssrfPolicy =
+    allowedHostnames.size > 0 ? { allowedHostnames: Array.from(allowedHostnames) } : undefined;
   const runtime = getFeishuRuntime();
   const fetched = await runtime.channel.media.fetchRemoteMedia({
     url: parsed.toString(),
@@ -501,66 +502,66 @@ export function registerFeishuDocTools(api: OpenClawPluginApi) {
   // Main document tool with action-based dispatch
   if (toolsCfg.doc) {
     api.registerTool(
-    {
-      name: "feishu_doc",
-      label: "Feishu Doc",
-      description:
-        "Feishu document operations. Actions: read, write, append, create, list_blocks, get_block, update_block, delete_block",
-      parameters: FeishuDocSchema,
-      async execute(_toolCallId, params) {
-        const p = params as FeishuDocParams;
-        try {
-          const client = getClient();
-          switch (p.action) {
-            case "read":
-              return json(await readDoc(client, p.doc_token));
-            case "write":
-              return json(await writeDoc(client, p.doc_token, p.content, feishuCfg));
-            case "append":
-              return json(await appendDoc(client, p.doc_token, p.content, feishuCfg));
-            case "create":
-              return json(await createDoc(client, p.title, p.folder_token));
-            case "list_blocks":
-              return json(await listBlocks(client, p.doc_token));
-            case "get_block":
-              return json(await getBlock(client, p.doc_token, p.block_id));
-            case "update_block":
-              return json(await updateBlock(client, p.doc_token, p.block_id, p.content));
-            case "delete_block":
-              return json(await deleteBlock(client, p.doc_token, p.block_id));
-            default:
-              return json({ error: `Unknown action: ${(p as any).action}` });
+      {
+        name: "feishu_doc",
+        label: "Feishu Doc",
+        description:
+          "Feishu document operations. Actions: read, write, append, create, list_blocks, get_block, update_block, delete_block",
+        parameters: FeishuDocSchema,
+        async execute(_toolCallId, params) {
+          const p = params as FeishuDocParams;
+          try {
+            const client = getClient();
+            switch (p.action) {
+              case "read":
+                return json(await readDoc(client, p.doc_token));
+              case "write":
+                return json(await writeDoc(client, p.doc_token, p.content, feishuCfg));
+              case "append":
+                return json(await appendDoc(client, p.doc_token, p.content, feishuCfg));
+              case "create":
+                return json(await createDoc(client, p.title, p.folder_token));
+              case "list_blocks":
+                return json(await listBlocks(client, p.doc_token));
+              case "get_block":
+                return json(await getBlock(client, p.doc_token, p.block_id));
+              case "update_block":
+                return json(await updateBlock(client, p.doc_token, p.block_id, p.content));
+              case "delete_block":
+                return json(await deleteBlock(client, p.doc_token, p.block_id));
+              default:
+                return json({ error: `Unknown action: ${(p as any).action}` });
+            }
+          } catch (err) {
+            return json({ error: err instanceof Error ? err.message : String(err) });
           }
-        } catch (err) {
-          return json({ error: err instanceof Error ? err.message : String(err) });
-        }
+        },
       },
-    },
-    { name: "feishu_doc" },
-  );
+      { name: "feishu_doc" },
+    );
     registered.push("feishu_doc");
   }
 
   // Keep feishu_app_scopes as independent tool
   if (toolsCfg.scopes) {
     api.registerTool(
-    {
-      name: "feishu_app_scopes",
-      label: "Feishu App Scopes",
-      description:
-        "List current app permissions (scopes). Use to debug permission issues or check available capabilities.",
-      parameters: Type.Object({}),
-      async execute() {
-        try {
-          const result = await listAppScopes(getClient());
-          return json(result);
-        } catch (err) {
-          return json({ error: err instanceof Error ? err.message : String(err) });
-        }
+      {
+        name: "feishu_app_scopes",
+        label: "Feishu App Scopes",
+        description:
+          "List current app permissions (scopes). Use to debug permission issues or check available capabilities.",
+        parameters: Type.Object({}),
+        async execute() {
+          try {
+            const result = await listAppScopes(getClient());
+            return json(result);
+          } catch (err) {
+            return json({ error: err instanceof Error ? err.message : String(err) });
+          }
+        },
       },
-    },
-    { name: "feishu_app_scopes" },
-  );
+      { name: "feishu_app_scopes" },
+    );
     registered.push("feishu_app_scopes");
   }
 

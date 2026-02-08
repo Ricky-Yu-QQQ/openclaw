@@ -1261,7 +1261,7 @@ describe("createTelegramBot", () => {
     expect(replySpy).toHaveBeenCalledTimes(1);
     const payload = replySpy.mock.calls[0][0];
     expect(payload.AccountId).toBe("opie");
-    expect(payload.SessionKey).toBe("agent:opie:main");
+    expect(payload.SessionKey).toBe("agent:opie:dm:123");
   });
 
   it("allows per-group requireMention override", async () => {
@@ -2430,7 +2430,7 @@ describe("createTelegramBot", () => {
 
     expect(replySpy).toHaveBeenCalledTimes(1);
     const payload = replySpy.mock.calls[0][0];
-    expect(payload.CommandTargetSessionKey).toBe("agent:main:main:thread:99");
+    expect(payload.CommandTargetSessionKey).toBe("agent:main:dm:12345:thread:99");
   });
 
   it("allows native DM commands for paired users", async () => {

@@ -1,7 +1,7 @@
-import { Type } from "@sinclair/typebox";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
-import { createFeishuClient } from "./client.js";
+import { Type } from "@sinclair/typebox";
 import type { FeishuConfig } from "./types.js";
+import { createFeishuClient } from "./client.js";
 
 // ============ Helpers ============
 
@@ -83,10 +83,7 @@ async function getAppTokenFromWiki(
 }
 
 /** Get bitable metadata from URL (handles both /base/ and /wiki/ URLs) */
-async function getBitableMeta(
-  client: ReturnType<typeof createFeishuClient>,
-  url: string,
-) {
+async function getBitableMeta(client: ReturnType<typeof createFeishuClient>, url: string) {
   const parsed = parseBitableUrl(url);
   if (!parsed) {
     throw new Error("Invalid URL format. Expected /base/XXX or /wiki/XXX URL");
@@ -234,8 +231,7 @@ async function updateRecord(
 
 const GetMetaSchema = Type.Object({
   url: Type.String({
-    description:
-      "Bitable URL. Supports both formats: /base/XXX?table=YYY or /wiki/XXX?table=YYY",
+    description: "Bitable URL. Supports both formats: /base/XXX?table=YYY or /wiki/XXX?table=YYY",
   }),
 });
 
@@ -252,9 +248,15 @@ const ListRecordsSchema = Type.Object({
   }),
   table_id: Type.String({ description: "Table ID (from URL: ?table=YYY)" }),
   page_size: Type.Optional(
-    Type.Number({ description: "Number of records per page (1-500, default 100)", minimum: 1, maximum: 500 }),
+    Type.Number({
+      description: "Number of records per page (1-500, default 100)",
+      minimum: 1,
+      maximum: 500,
+    }),
   ),
-  page_token: Type.Optional(Type.String({ description: "Pagination token from previous response" })),
+  page_token: Type.Optional(
+    Type.String({ description: "Pagination token from previous response" }),
+  ),
 });
 
 const GetRecordSchema = Type.Object({

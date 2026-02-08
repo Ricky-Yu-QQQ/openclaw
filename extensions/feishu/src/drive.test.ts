@@ -8,7 +8,14 @@ const httpGetImpl = vi.fn();
 
 vi.mock("./client.js", () => ({
   createFeishuClient: vi.fn(() => ({
-    drive: { file: { list: (...args: any[]) => listImpl(...args), createFolder: (...args: any[]) => createFolderImpl(...args), move: (...args: any[]) => moveImpl(...args), delete: (...args: any[]) => deleteImpl(...args) } },
+    drive: {
+      file: {
+        list: (...args: any[]) => listImpl(...args),
+        createFolder: (...args: any[]) => createFolderImpl(...args),
+        move: (...args: any[]) => moveImpl(...args),
+        delete: (...args: any[]) => deleteImpl(...args),
+      },
+    },
     httpInstance: { get: (...args: any[]) => httpGetImpl(...args) },
     domain: "https://open.feishu.cn",
   })),
@@ -44,24 +51,38 @@ describe("feishu drive tools", () => {
   });
 
   it("skips when drive disabled", () => {
-    const api = buildApi({ channels: { feishu: { appId: "app", appSecret: "secret", tools: { drive: false } } } });
+    const api = buildApi({
+      channels: { feishu: { appId: "app", appSecret: "secret", tools: { drive: false } } },
+    });
     registerFeishuDriveTools(api);
     expect(Object.keys(api.tools)).toHaveLength(0);
   });
 
   it("registers and executes drive actions", async () => {
-    const api = buildApi({ channels: { feishu: { appId: "app", appSecret: "secret", tools: { drive: true } } } });
+    const api = buildApi({
+      channels: { feishu: { appId: "app", appSecret: "secret", tools: { drive: true } } },
+    });
     registerFeishuDriveTools(api);
 
     const tool = api.tools.feishu_drive;
     expect(tool).toBeDefined();
 
-    listImpl.mockResolvedValue({ code: 0, data: { files: [{ token: "t1", name: "A", type: "file" }], next_page_token: "n" } });
+    listImpl.mockResolvedValue({
+      code: 0,
+      data: { files: [{ token: "t1", name: "A", type: "file" }], next_page_token: "n" },
+    });
     const listRes = await tool.execute("id", { action: "list" });
     expect(listRes.details.files[0].token).toBe("t1");
 
-    listImpl.mockResolvedValue({ code: 0, data: { files: [{ token: "t2", name: "B", type: "file" }] } });
-    const infoRes = await tool.execute("id", { action: "info", file_token: "t2", folder_token: "f" });
+    listImpl.mockResolvedValue({
+      code: 0,
+      data: { files: [{ token: "t2", name: "B", type: "file" }] },
+    });
+    const infoRes = await tool.execute("id", {
+      action: "info",
+      file_token: "t2",
+      folder_token: "f",
+    });
     expect(infoRes.details.token).toBe("t2");
 
     httpGetImpl.mockResolvedValue({ code: 0, data: { token: "root" } });
@@ -70,7 +91,12 @@ describe("feishu drive tools", () => {
     expect(createRes.details.token).toBe("new");
 
     moveImpl.mockResolvedValue({ code: 0, data: { task_id: "task" } });
-    const moveRes = await tool.execute("id", { action: "move", file_token: "t1", type: "doc", folder_token: "f" });
+    const moveRes = await tool.execute("id", {
+      action: "move",
+      file_token: "t1",
+      type: "doc",
+      folder_token: "f",
+    });
     expect(moveRes.details.task_id).toBe("task");
 
     deleteImpl.mockResolvedValue({ code: 0, data: { task_id: "task" } });
@@ -79,7 +105,9 @@ describe("feishu drive tools", () => {
   });
 
   it("returns error on unknown action", async () => {
-    const api = buildApi({ channels: { feishu: { appId: "app", appSecret: "secret", tools: { drive: true } } } });
+    const api = buildApi({
+      channels: { feishu: { appId: "app", appSecret: "secret", tools: { drive: true } } },
+    });
     registerFeishuDriveTools(api);
     const res = await api.tools.feishu_drive.execute("id", { action: "unknown" });
     expect(res.details.error).toContain("Unknown action");

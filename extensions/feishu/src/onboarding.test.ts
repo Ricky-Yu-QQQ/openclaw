@@ -1,19 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./probe.js", () => ({
   probeFeishu: vi.fn().mockResolvedValue({ ok: true, botName: "Bot" }),
 }));
 
+import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk";
 import { feishuOnboardingAdapter } from "./onboarding.js";
 import { probeFeishu } from "./probe.js";
-import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk";
 
-function createPrompter(responses: {
-  text?: string[];
-  confirm?: boolean[];
-  select?: string[];
-}) {
+function createPrompter(responses: { text?: string[]; confirm?: boolean[]; select?: string[] }) {
   const textQueue = [...(responses.text ?? [])];
   const confirmQueue = [...(responses.confirm ?? [])];
   const selectQueue = [...(responses.select ?? [])];

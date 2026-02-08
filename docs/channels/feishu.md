@@ -27,12 +27,12 @@ openclaw plugins install @openclaw/feishu
 
 Create a Feishu app and enable bot capabilities:
 
-1) Create an app in the Feishu Open Platform.
-2) Get the **App ID** and **App Secret**.
-3) Enable the Bot capability and select **Long connection** for message receiving.
-4) Add permissions (see below).
-5) Configure event subscriptions (see below).
-6) Publish and authorize the app in your tenant.
+1. Create an app in the Feishu Open Platform.
+2. Get the **App ID** and **App Secret**.
+3. Enable the Bot capability and select **Long connection** for message receiving.
+4. Add permissions (see below).
+5. Configure event subscriptions (see below).
+6. Publish and authorize the app in your tenant.
 
 Then onboard in OpenClaw:
 

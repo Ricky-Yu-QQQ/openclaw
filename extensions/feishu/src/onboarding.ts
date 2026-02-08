@@ -6,10 +6,9 @@ import type {
   WizardPrompter,
 } from "openclaw/plugin-sdk";
 import { addWildcardAllowFrom, DEFAULT_ACCOUNT_ID, formatDocsLink } from "openclaw/plugin-sdk";
-
+import type { FeishuConfig } from "./types.js";
 import { resolveFeishuCredentials } from "./accounts.js";
 import { probeFeishu } from "./probe.js";
-import type { FeishuConfig } from "./types.js";
 
 const channel = "feishu" as const;
 
@@ -162,7 +161,9 @@ export const feishuOnboardingAdapter: ChannelOnboardingAdapter = {
     if (!configured) {
       statusLines.push("Feishu: needs app credentials");
     } else if (probeResult?.ok) {
-      statusLines.push(`Feishu: connected as ${probeResult.botName ?? probeResult.botOpenId ?? "bot"}`);
+      statusLines.push(
+        `Feishu: connected as ${probeResult.botName ?? probeResult.botOpenId ?? "bot"}`,
+      );
     } else {
       statusLines.push("Feishu: configured (connection not verified)");
     }
@@ -181,9 +182,7 @@ export const feishuOnboardingAdapter: ChannelOnboardingAdapter = {
     const resolved = resolveFeishuCredentials(feishuCfg);
     const hasConfigCreds = Boolean(feishuCfg?.appId?.trim() && feishuCfg?.appSecret?.trim());
     const canUseEnv = Boolean(
-      !hasConfigCreds &&
-        process.env.FEISHU_APP_ID?.trim() &&
-        process.env.FEISHU_APP_SECRET?.trim(),
+      !hasConfigCreds && process.env.FEISHU_APP_ID?.trim() && process.env.FEISHU_APP_SECRET?.trim(),
     );
 
     let next = cfg;
@@ -320,8 +319,7 @@ export const feishuOnboardingAdapter: ChannelOnboardingAdapter = {
         { value: "open", label: "Open - respond in all groups (requires mention)" },
         { value: "disabled", label: "Disabled - don't respond in groups" },
       ],
-      initialValue:
-        (next.channels?.feishu as FeishuConfig | undefined)?.groupPolicy ?? "allowlist",
+      initialValue: (next.channels?.feishu as FeishuConfig | undefined)?.groupPolicy ?? "allowlist",
     });
     if (groupPolicy) {
       next = setFeishuGroupPolicy(next, groupPolicy as "open" | "allowlist" | "disabled");

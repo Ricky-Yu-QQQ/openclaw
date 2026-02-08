@@ -25,7 +25,9 @@ if (!appId || !appSecret) {
 
 if (!inputUrl) {
   console.error("Usage: npx tsx scripts/test-bitable.ts <bitable_url>");
-  console.error('Example: npx tsx scripts/test-bitable.ts "https://xxx.feishu.cn/wiki/XXX?table=tblYYY"');
+  console.error(
+    'Example: npx tsx scripts/test-bitable.ts "https://xxx.feishu.cn/wiki/XXX?table=tblYYY"',
+  );
   process.exit(1);
 }
 
@@ -69,7 +71,9 @@ async function main() {
     console.error("Error: Invalid URL format. Expected /base/XXX or /wiki/XXX URL");
     process.exit(1);
   }
-  console.log(`0. Parsed URL: token=${parsed.token}, tableId=${parsed.tableId}, isWiki=${parsed.isWiki}`);
+  console.log(
+    `0. Parsed URL: token=${parsed.token}, tableId=${parsed.tableId}, isWiki=${parsed.isWiki}`,
+  );
 
   // 1. Get app_token (convert wiki node_token if needed)
   let appToken: string;

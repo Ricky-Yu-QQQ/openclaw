@@ -1,5 +1,5 @@
-import { Type } from "@sinclair/typebox";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import { Type } from "@sinclair/typebox";
 import { jsonResult, readStringParam, stringEnum } from "openclaw/plugin-sdk";
 import type { FeishuConfig } from "./types.js";
 import { createFeishuClient } from "./client.js";
@@ -76,9 +76,10 @@ export function registerFeishuUrgentTool(api: OpenClawPluginApi) {
       const messageId = readStringParam(params, "messageId", { required: true });
       const urgentType = readStringParam(params, "urgentType", { required: true }) as UrgentType;
       const userIds = ensureUserIds(readUserIds(params));
-      const userIdType = (readStringParam(params, "userIdType", {
-        allowEmpty: true,
-      }) as UserIdType | undefined) ?? "open_id";
+      const userIdType =
+        (readStringParam(params, "userIdType", {
+          allowEmpty: true,
+        }) as UserIdType | undefined) ?? "open_id";
 
       const data = await sendUrgentFeishu({
         cfg: feishuCfg,

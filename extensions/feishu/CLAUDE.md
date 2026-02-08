@@ -21,28 +21,33 @@ npx tsc --noEmit
 ## Architecture
 
 ### Entry Point
+
 - `index.ts` - Plugin registration, exports public API
 
 ### Core Modules (src/)
 
 **Connection & Events:**
+
 - `client.ts` - Feishu SDK client factory (REST + WebSocket)
 - `monitor.ts` - WebSocket event listener, dispatches incoming messages
 - `bot.ts` - Message event handler, parses content, resolves media, dispatches to agent
 
 **Outbound:**
+
 - `send.ts` - Text messages, interactive cards, message editing
 - `media.ts` - Upload/download images and files, inbound media resolution
 - `outbound.ts` - `ChannelOutboundAdapter` implementation
 - `reply-dispatcher.ts` - Streaming reply handling with render mode (raw/card/auto)
 
 **Configuration & Policy:**
+
 - `config-schema.ts` - Zod schemas for channel config
 - `policy.ts` - DM/group allowlist, mention requirements
 - `accounts.ts` - Credential resolution
 - `types.ts` - TypeScript type definitions
 
 **Utilities:**
+
 - `targets.ts` - Normalize `user:xxx`/`chat:xxx` target formats
 - `directory.ts` - User/group lookup
 - `reactions.ts` - Emoji reactions API
@@ -59,17 +64,18 @@ npx tsc --noEmit
 
 ### Key Configuration Options
 
-| Option | Description |
-|--------|-------------|
-| `connectionMode` | `websocket` (default) or `webhook` |
-| `dmPolicy` | `pairing` / `open` / `allowlist` |
-| `groupPolicy` | `open` / `allowlist` / `disabled` |
-| `requireMention` | Require @bot in groups (default: true) |
-| `renderMode` | `auto` / `raw` / `card` for markdown rendering |
+| Option           | Description                                    |
+| ---------------- | ---------------------------------------------- |
+| `connectionMode` | `websocket` (default) or `webhook`             |
+| `dmPolicy`       | `pairing` / `open` / `allowlist`               |
+| `groupPolicy`    | `open` / `allowlist` / `disabled`              |
+| `requireMention` | Require @bot in groups (default: true)         |
+| `renderMode`     | `auto` / `raw` / `card` for markdown rendering |
 
 ### Feishu SDK Usage
 
 Uses `@larksuiteoapi/node-sdk`. Key APIs:
+
 - `client.im.message.create/reply` - Send messages
 - `client.im.messageResource.get` - Download media from messages
 - `client.im.image.create` - Upload images

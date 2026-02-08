@@ -1,10 +1,10 @@
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
-import type { FeishuConfig, FeishuSendResult } from "./types.js";
 import type { MentionTarget } from "./mention.js";
-import { buildMentionedMessage, buildMentionedCardContent } from "./mention.js";
+import type { FeishuConfig, FeishuSendResult } from "./types.js";
 import { createFeishuClient } from "./client.js";
-import { resolveReceiveIdType, normalizeFeishuTarget } from "./targets.js";
+import { buildMentionedMessage, buildMentionedCardContent } from "./mention.js";
 import { getFeishuRuntime } from "./runtime.js";
+import { resolveReceiveIdType, normalizeFeishuTarget } from "./targets.js";
 
 export type FeishuMessageInfo = {
   messageId: string;
@@ -119,7 +119,9 @@ function buildFeishuPostMessagePayload(params: { feishuCfg: FeishuConfig; messag
   };
 }
 
-export async function sendMessageFeishu(params: SendFeishuMessageParams): Promise<FeishuSendResult> {
+export async function sendMessageFeishu(
+  params: SendFeishuMessageParams,
+): Promise<FeishuSendResult> {
   const { cfg, to, text, replyToMessageId, mentions } = params;
   const feishuCfg = cfg.channels?.feishu as FeishuConfig | undefined;
   if (!feishuCfg) {

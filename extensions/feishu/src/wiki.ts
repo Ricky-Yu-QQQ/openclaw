@@ -1,9 +1,9 @@
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
-import { createFeishuClient } from "./client.js";
-import type { FeishuConfig } from "./types.js";
 import type * as Lark from "@larksuiteoapi/node-sdk";
-import { FeishuWikiSchema, type FeishuWikiParams } from "./wiki-schema.js";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import type { FeishuConfig } from "./types.js";
+import { createFeishuClient } from "./client.js";
 import { resolveToolsConfig } from "./tools-config.js";
+import { FeishuWikiSchema, type FeishuWikiParams } from "./wiki-schema.js";
 
 // ============ Helpers ============
 
@@ -128,12 +128,7 @@ async function moveNode(
   };
 }
 
-async function renameNode(
-  client: Lark.Client,
-  spaceId: string,
-  nodeToken: string,
-  title: string,
-) {
+async function renameNode(client: Lark.Client, spaceId: string, nodeToken: string, title: string) {
   const res = await client.wiki.spaceNode.updateTitle({
     path: { space_id: spaceId, node_token: nodeToken },
     data: { title },

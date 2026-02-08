@@ -30,7 +30,7 @@ vi.mock("../../agents/pi-embedded.js", () => ({
 }));
 
 vi.mock("../../channels/plugins/message-actions.js", () => ({
-  dispatchChannelMessageAction: (...args: any[]) => dispatchChannelMessageAction(...args),
+  dispatchChannelMessageAction: (...args: unknown[]) => dispatchChannelMessageAction(...args),
 }));
 
 import { createFollowupRunner } from "./followup-runner.js";

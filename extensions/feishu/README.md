@@ -30,52 +30,53 @@ openclaw plugins update feishu
 
 #### Required Permissions
 
-| Permission | Scope | Description |
-|------------|-------|-------------|
-| `im:message` | Messaging | Send and receive messages |
-| `im:message.p2p_msg:readonly` | DM | Read direct messages to bot |
-| `im:message.group_at_msg:readonly` | Group | Receive @mention messages in groups |
-| `im:message:send_as_bot` | Send | Send messages as the bot |
-| `im:resource` | Media | Upload and download images/files |
+| Permission                         | Scope     | Description                         |
+| ---------------------------------- | --------- | ----------------------------------- |
+| `im:message`                       | Messaging | Send and receive messages           |
+| `im:message.p2p_msg:readonly`      | DM        | Read direct messages to bot         |
+| `im:message.group_at_msg:readonly` | Group     | Receive @mention messages in groups |
+| `im:message:send_as_bot`           | Send      | Send messages as the bot            |
+| `im:resource`                      | Media     | Upload and download images/files    |
 
 #### Optional Permissions
 
-| Permission | Scope | Description |
-|------------|-------|-------------|
+| Permission                   | Scope     | Description                                                                            |
+| ---------------------------- | --------- | -------------------------------------------------------------------------------------- |
 | `contact:user.base:readonly` | User info | Get basic user info (required to resolve sender display names for speaker attribution) |
-| `im:message.group_msg` | Group | Read all group messages (sensitive) |
-| `im:message:readonly` | Read | Get message history |
-| `im:message:update` | Edit | Update/edit sent messages |
-| `im:message:recall` | Recall | Recall sent messages |
-| `im:message.reactions:read` | Reactions | View message reactions |
-| Message urgent permissions | Urgent | Enable app/SMS/phone urgent notifications |
+| `im:message.group_msg`       | Group     | Read all group messages (sensitive)                                                    |
+| `im:message:readonly`        | Read      | Get message history                                                                    |
+| `im:message:update`          | Edit      | Update/edit sent messages                                                              |
+| `im:message:recall`          | Recall    | Recall sent messages                                                                   |
+| `im:message.reactions:read`  | Reactions | View message reactions                                                                 |
+| Message urgent permissions   | Urgent    | Enable app/SMS/phone urgent notifications                                              |
 
 #### Tool Permissions
 
 **Read-only** (minimum required):
 
-| Permission | Tool | Description |
-|------------|------|-------------|
-| `docx:document:readonly` | `feishu_doc` | Read documents |
-| `drive:drive:readonly` | `feishu_drive` | List folders, get file info |
-| `wiki:wiki:readonly` | `feishu_wiki` | List spaces, list nodes, get node info, search |
-| `bitable:app:readonly` | `feishu_bitable` | Read bitable records and fields |
+| Permission               | Tool             | Description                                    |
+| ------------------------ | ---------------- | ---------------------------------------------- |
+| `docx:document:readonly` | `feishu_doc`     | Read documents                                 |
+| `drive:drive:readonly`   | `feishu_drive`   | List folders, get file info                    |
+| `wiki:wiki:readonly`     | `feishu_wiki`    | List spaces, list nodes, get node info, search |
+| `bitable:app:readonly`   | `feishu_bitable` | Read bitable records and fields                |
 
 **Read-write** (optional, for create/edit/delete operations):
 
-| Permission | Tool | Description |
-|------------|------|-------------|
-| `docx:document` | `feishu_doc` | Create/edit documents |
-| `docx:document.block:convert` | `feishu_doc` | Markdown to blocks conversion (required for write/append) |
-| `drive:drive` | `feishu_doc`, `feishu_drive` | Upload images to documents, create folders, move/delete files |
-| `wiki:wiki` | `feishu_wiki` | Create/move/rename wiki nodes |
-| `bitable:app` | `feishu_bitable` | Create/update bitable records |
+| Permission                    | Tool                         | Description                                                   |
+| ----------------------------- | ---------------------------- | ------------------------------------------------------------- |
+| `docx:document`               | `feishu_doc`                 | Create/edit documents                                         |
+| `docx:document.block:convert` | `feishu_doc`                 | Markdown to blocks conversion (required for write/append)     |
+| `drive:drive`                 | `feishu_doc`, `feishu_drive` | Upload images to documents, create folders, move/delete files |
+| `wiki:wiki`                   | `feishu_wiki`                | Create/move/rename wiki nodes                                 |
+| `bitable:app`                 | `feishu_bitable`             | Create/update bitable records                                 |
 
 #### Drive Access ⚠️
 
 > **Important:** Bots don't have their own "My Space" (root folder). Bots can only access files/folders that have been **shared with them**.
 
 To let the bot manage files:
+
 1. Create a folder in your Feishu Drive
 2. Right-click the folder → **Share** → search for your bot name
 3. Grant appropriate permission (view/edit)
@@ -100,11 +101,13 @@ Reference: [Wiki FAQ - How to add app to wiki](https://open.feishu.cn/document/s
 > **Important:** Like other resources, the bot can only access bitables that have been **shared with it**.
 
 To let the bot access a bitable:
+
 1. Open the bitable you want the bot to access
 2. Click **Share** button → search for your bot name
 3. Grant appropriate permission (view/edit)
 
 The `feishu_bitable` tools support both URL formats:
+
 - `/base/XXX?table=YYY` - Standard bitable URL
 - `/wiki/XXX?table=YYY` - Bitable embedded in wiki (auto-converts to app_token)
 
@@ -117,12 +120,12 @@ In the Feishu Open Platform console, go to **Events & Callbacks**:
 1. **Event configuration**: Select **Long connection** (recommended)
 2. **Add event subscriptions**:
 
-| Event | Description |
-|-------|-------------|
-| `im.message.receive_v1` | Receive messages (required) |
-| `im.message.message_read_v1` | Message read receipts |
-| `im.chat.member.bot.added_v1` | Bot added to group |
-| `im.chat.member.bot.deleted_v1` | Bot removed from group |
+| Event                           | Description                 |
+| ------------------------------- | --------------------------- |
+| `im.message.receive_v1`         | Receive messages (required) |
+| `im.message.message_read_v1`    | Message read receipts       |
+| `im.chat.member.bot.added_v1`   | Bot added to group          |
+| `im.chat.member.bot.deleted_v1` | Bot removed from group      |
 
 3. Ensure the event permissions are approved
 
@@ -158,10 +161,10 @@ channels:
 
 #### Render Mode
 
-| Mode | Description |
-|------|-------------|
-| `auto` | (Default) Automatically detect: use card for messages with code blocks or tables, plain text otherwise. |
-| `raw` | Always send replies as plain text. Markdown tables are converted to ASCII. |
+| Mode   | Description                                                                                                           |
+| ------ | --------------------------------------------------------------------------------------------------------------------- |
+| `auto` | (Default) Automatically detect: use card for messages with code blocks or tables, plain text otherwise.               |
+| `raw`  | Always send replies as plain text. Markdown tables are converted to ASCII.                                            |
 | `card` | Always send replies as interactive cards with full markdown rendering (syntax highlighting, tables, clickable links). |
 
 ### Features
@@ -199,6 +202,7 @@ The bot automatically detects @mentions in your message and includes them in its
 #### Bot cannot receive messages
 
 Check the following:
+
 1. Have you configured **event subscriptions**? (See Event Subscriptions section)
 2. Is the event configuration set to **long connection**?
 3. Did you add the `im.message.receive_v1` event?
@@ -260,52 +264,53 @@ openclaw plugins update feishu
 
 #### 必需权限
 
-| 权限 | 范围 | 说明 |
-|------|------|------|
-| `im:message` | 消息 | 发送和接收消息 |
-| `im:message.p2p_msg:readonly` | 私聊 | 读取发给机器人的私聊消息 |
-| `im:message.group_at_msg:readonly` | 群聊 | 接收群内 @机器人 的消息 |
-| `im:message:send_as_bot` | 发送 | 以机器人身份发送消息 |
-| `im:resource` | 媒体 | 上传和下载图片/文件 |
+| 权限                               | 范围 | 说明                     |
+| ---------------------------------- | ---- | ------------------------ |
+| `im:message`                       | 消息 | 发送和接收消息           |
+| `im:message.p2p_msg:readonly`      | 私聊 | 读取发给机器人的私聊消息 |
+| `im:message.group_at_msg:readonly` | 群聊 | 接收群内 @机器人 的消息  |
+| `im:message:send_as_bot`           | 发送 | 以机器人身份发送消息     |
+| `im:resource`                      | 媒体 | 上传和下载图片/文件      |
 
 #### 可选权限
 
-| 权限 | 范围 | 说明 |
-|------|------|------|
+| 权限                         | 范围     | 说明                                                                        |
+| ---------------------------- | -------- | --------------------------------------------------------------------------- |
 | `contact:user.base:readonly` | 用户信息 | 获取用户基本信息（用于解析发送者姓名，避免群聊/私聊把不同人当成同一说话者） |
-| `im:message.group_msg` | 群聊 | 读取所有群消息（敏感） |
-| `im:message:readonly` | 读取 | 获取历史消息 |
-| `im:message:update` | 编辑 | 更新/编辑已发送消息 |
-| `im:message:recall` | 撤回 | 撤回已发送消息 |
-| `im:message.reactions:read` | 表情 | 查看消息表情回复 |
-| 消息加急权限 | 加急 | 启用应用内/短信/电话加急通知 |
+| `im:message.group_msg`       | 群聊     | 读取所有群消息（敏感）                                                      |
+| `im:message:readonly`        | 读取     | 获取历史消息                                                                |
+| `im:message:update`          | 编辑     | 更新/编辑已发送消息                                                         |
+| `im:message:recall`          | 撤回     | 撤回已发送消息                                                              |
+| `im:message.reactions:read`  | 表情     | 查看消息表情回复                                                            |
+| 消息加急权限                 | 加急     | 启用应用内/短信/电话加急通知                                                |
 
 #### 工具权限
 
 **只读权限**（最低要求）：
 
-| 权限 | 工具 | 说明 |
-|------|------|------|
-| `docx:document:readonly` | `feishu_doc` | 读取文档 |
-| `drive:drive:readonly` | `feishu_drive` | 列出文件夹、获取文件信息 |
-| `wiki:wiki:readonly` | `feishu_wiki` | 列出空间、列出节点、获取节点详情、搜索 |
-| `bitable:app:readonly` | `feishu_bitable` | 读取多维表格记录和字段 |
+| 权限                     | 工具             | 说明                                   |
+| ------------------------ | ---------------- | -------------------------------------- |
+| `docx:document:readonly` | `feishu_doc`     | 读取文档                               |
+| `drive:drive:readonly`   | `feishu_drive`   | 列出文件夹、获取文件信息               |
+| `wiki:wiki:readonly`     | `feishu_wiki`    | 列出空间、列出节点、获取节点详情、搜索 |
+| `bitable:app:readonly`   | `feishu_bitable` | 读取多维表格记录和字段                 |
 
 **读写权限**（可选，用于创建/编辑/删除操作）：
 
-| 权限 | 工具 | 说明 |
-|------|------|------|
-| `docx:document` | `feishu_doc` | 创建/编辑文档 |
-| `docx:document.block:convert` | `feishu_doc` | Markdown 转 blocks（write/append 必需） |
-| `drive:drive` | `feishu_doc`, `feishu_drive` | 上传图片到文档、创建文件夹、移动/删除文件 |
-| `wiki:wiki` | `feishu_wiki` | 创建/移动/重命名知识库节点 |
-| `bitable:app` | `feishu_bitable` | 创建/更新多维表格记录 |
+| 权限                          | 工具                         | 说明                                      |
+| ----------------------------- | ---------------------------- | ----------------------------------------- |
+| `docx:document`               | `feishu_doc`                 | 创建/编辑文档                             |
+| `docx:document.block:convert` | `feishu_doc`                 | Markdown 转 blocks（write/append 必需）   |
+| `drive:drive`                 | `feishu_doc`, `feishu_drive` | 上传图片到文档、创建文件夹、移动/删除文件 |
+| `wiki:wiki`                   | `feishu_wiki`                | 创建/移动/重命名知识库节点                |
+| `bitable:app`                 | `feishu_bitable`             | 创建/更新多维表格记录                     |
 
 #### 云空间访问权限 ⚠️
 
 > **重要：** 机器人没有自己的"我的空间"（根目录）。机器人只能访问**被分享给它的文件/文件夹**。
 
 要让机器人管理文件：
+
 1. 在你的飞书云空间创建一个文件夹
 2. 右键文件夹 → **分享** → 搜索机器人名称
 3. 授予相应权限（查看/编辑）
@@ -330,11 +335,13 @@ openclaw plugins update feishu
 > **重要：** 与其他资源一样，机器人只能访问**被分享给它的多维表格**。
 
 要让机器人访问多维表格：
+
 1. 打开需要机器人访问的多维表格
 2. 点击 **分享** 按钮 → 搜索机器人名称
 3. 授予相应权限（查看/编辑）
 
 `feishu_bitable` 工具支持两种 URL 格式：
+
 - `/base/XXX?table=YYY` - 标准多维表格链接
 - `/wiki/XXX?table=YYY` - 嵌入在知识库中的多维表格（自动转换为 app_token）
 
@@ -347,12 +354,12 @@ openclaw plugins update feishu
 1. **事件配置方式**：选择 **使用长连接接收事件**（推荐）
 2. **添加事件订阅**，勾选以下事件：
 
-| 事件 | 说明 |
-|------|------|
-| `im.message.receive_v1` | 接收消息（必需） |
-| `im.message.message_read_v1` | 消息已读回执 |
-| `im.chat.member.bot.added_v1` | 机器人进群 |
-| `im.chat.member.bot.deleted_v1` | 机器人被移出群 |
+| 事件                            | 说明             |
+| ------------------------------- | ---------------- |
+| `im.message.receive_v1`         | 接收消息（必需） |
+| `im.message.message_read_v1`    | 消息已读回执     |
+| `im.chat.member.bot.added_v1`   | 机器人进群       |
+| `im.chat.member.bot.deleted_v1` | 机器人被移出群   |
 
 3. 确保事件订阅的权限已申请并通过审核
 
@@ -388,11 +395,11 @@ channels:
 
 #### 渲染模式
 
-| 模式 | 说明 |
-|------|------|
+| 模式   | 说明                                                 |
+| ------ | ---------------------------------------------------- |
 | `auto` | （默认）自动检测：有代码块或表格时用卡片，否则纯文本 |
-| `raw` | 始终纯文本，表格转为 ASCII |
-| `card` | 始终使用卡片，支持语法高亮、表格、链接等 |
+| `raw`  | 始终纯文本，表格转为 ASCII                           |
+| `card` | 始终使用卡片，支持语法高亮、表格、链接等             |
 
 ### 功能
 
@@ -429,6 +436,7 @@ channels:
 #### 机器人收不到消息
 
 检查以下配置：
+
 1. 是否配置了 **事件订阅**？（见上方事件订阅章节）
 2. 事件配置方式是否选择了 **长连接**？
 3. 是否添加了 `im.message.receive_v1` 事件？

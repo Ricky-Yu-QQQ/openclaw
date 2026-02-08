@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setFeishuRuntime } from "./runtime.js";
 
 const sendMessageFeishu = vi.fn();
@@ -45,7 +45,12 @@ describe("feishu outbound", () => {
     sendMessageFeishu.mockResolvedValue({ messageId: "m1", chatId: "c1" });
     sendMediaFeishu.mockRejectedValue(new Error("fail"));
 
-    const res = await feishuOutbound.sendMedia({ cfg, to: "ou_1", text: "hi", mediaUrl: "https://x" } as any);
+    const res = await feishuOutbound.sendMedia({
+      cfg,
+      to: "ou_1",
+      text: "hi",
+      mediaUrl: "https://x",
+    } as any);
     expect(res.channel).toBe("feishu");
     expect(sendMessageFeishu).toHaveBeenCalled();
   });

@@ -6,9 +6,11 @@ import {
   DEFAULT_GROUP_HISTORY_LIMIT,
   type HistoryEntry,
 } from "openclaw/plugin-sdk";
+import type { MentionTarget } from "./mention.js";
 import type { FeishuConfig, FeishuMessageContext, FeishuMediaInfo } from "./types.js";
-import { getFeishuRuntime } from "./runtime.js";
 import { createFeishuClient } from "./client.js";
+import { downloadImageFeishu, downloadMessageResourceFeishu } from "./media.js";
+import { extractMentionTargets, extractMessageBody, isMentionForwardRequest } from "./mention.js";
 import {
   resolveFeishuGroupConfig,
   resolveFeishuReplyPolicy,
@@ -16,14 +18,8 @@ import {
   isFeishuGroupAllowed,
 } from "./policy.js";
 import { createFeishuReplyDispatcher } from "./reply-dispatcher.js";
+import { getFeishuRuntime } from "./runtime.js";
 import { getMessageFeishu, sendMessageFeishu } from "./send.js";
-import { downloadImageFeishu, downloadMessageResourceFeishu } from "./media.js";
-import {
-  extractMentionTargets,
-  extractMessageBody,
-  isMentionForwardRequest,
-} from "./mention.js";
-import type { MentionTarget } from "./mention.js";
 
 // --- Permission error extraction ---
 // Extract permission grant URL from Feishu API error response.
@@ -214,7 +210,10 @@ function checkBotMentioned(event: FeishuMessageEvent, botOpenId?: string): boole
   return mentions.some((m) => m.id.open_id === botOpenId);
 }
 
-function stripBotMention(text: string, mentions?: FeishuMessageEvent["message"]["mentions"]): string {
+function stripBotMention(
+  text: string,
+  mentions?: FeishuMessageEvent["message"]["mentions"],
+): string {
   if (!mentions || mentions.length === 0) return text;
   let result = text;
   for (const mention of mentions) {
@@ -451,9 +450,7 @@ async function resolveFeishuMediaList(params: {
  * Build media payload for inbound context.
  * Similar to Discord's buildDiscordMediaPayload().
  */
-function buildFeishuMediaPayload(
-  mediaList: FeishuMediaInfo[],
-): {
+function buildFeishuMediaPayload(mediaList: FeishuMediaInfo[]): {
   MediaPath?: string;
   MediaType?: string;
   MediaUrl?: string;
@@ -558,7 +555,9 @@ export async function handleFeishuMessage(params: {
 
     const historyLimit = Math.max(
       0,
-      feishuCfg?.historyLimit ?? cfg.messages?.groupChat?.historyLimit ?? DEFAULT_GROUP_HISTORY_LIMIT,
+      feishuCfg?.historyLimit ??
+        cfg.messages?.groupChat?.historyLimit ??
+        DEFAULT_GROUP_HISTORY_LIMIT,
     );
 
     const rawBody = ctx.content?.trim() || "";
@@ -805,14 +804,17 @@ export async function handleFeishuMessage(params: {
         OriginatingTo: feishuTo,
       });
 
-      const { dispatcher: permDispatcher, replyOptions: permReplyOptions, markDispatchIdle: markPermIdle } =
-        createFeishuReplyDispatcher({
-          cfg,
-          agentId: route.agentId,
-          runtime: runtime as RuntimeEnv,
-          chatId: ctx.chatId,
-          replyToMessageId: ctx.messageId,
-        });
+      const {
+        dispatcher: permDispatcher,
+        replyOptions: permReplyOptions,
+        markDispatchIdle: markPermIdle,
+      } = createFeishuReplyDispatcher({
+        cfg,
+        agentId: route.agentId,
+        runtime: runtime as RuntimeEnv,
+        chatId: ctx.chatId,
+        replyToMessageId: ctx.messageId,
+      });
 
       log(`feishu: dispatching permission error notification to agent`);
 

@@ -69,31 +69,61 @@ describe("feishu bitable tools", () => {
     const createRecordTool = api.tools.feishu_bitable_create_record;
     const updateRecordTool = api.tools.feishu_bitable_update_record;
 
-    wikiGetNodeImpl.mockResolvedValue({ code: 0, data: { node: { obj_type: "bitable", obj_token: "app_token" } } });
+    wikiGetNodeImpl.mockResolvedValue({
+      code: 0,
+      data: { node: { obj_type: "bitable", obj_token: "app_token" } },
+    });
     appGetImpl.mockResolvedValue({ code: 0, data: { app: { name: "App" } } });
-    appTableListImpl.mockResolvedValue({ code: 0, data: { items: [{ table_id: "tbl", name: "T" }] } });
+    appTableListImpl.mockResolvedValue({
+      code: 0,
+      data: { items: [{ table_id: "tbl", name: "T" }] },
+    });
 
-    const meta = await getMetaTool.execute("id", { url: "https://open.feishu.cn/wiki/abc?table=tbl" });
+    const meta = await getMetaTool.execute("id", {
+      url: "https://open.feishu.cn/wiki/abc?table=tbl",
+    });
     expect(meta.details.app_token).toBe("app_token");
 
-    fieldListImpl.mockResolvedValue({ code: 0, data: { items: [{ field_id: "f1", field_name: "Name", type: 1 }] } });
+    fieldListImpl.mockResolvedValue({
+      code: 0,
+      data: { items: [{ field_id: "f1", field_name: "Name", type: 1 }] },
+    });
     const fields = await listFieldsTool.execute("id", { app_token: "app_token", table_id: "tbl" });
     expect(fields.details.fields[0].field_id).toBe("f1");
 
-    recordListImpl.mockResolvedValue({ code: 0, data: { items: [{ record_id: "r1" }], has_more: false } });
-    const records = await listRecordsTool.execute("id", { app_token: "app_token", table_id: "tbl" });
+    recordListImpl.mockResolvedValue({
+      code: 0,
+      data: { items: [{ record_id: "r1" }], has_more: false },
+    });
+    const records = await listRecordsTool.execute("id", {
+      app_token: "app_token",
+      table_id: "tbl",
+    });
     expect(records.details.records[0].record_id).toBe("r1");
 
     recordGetImpl.mockResolvedValue({ code: 0, data: { record: { record_id: "r1" } } });
-    const record = await getRecordTool.execute("id", { app_token: "app_token", table_id: "tbl", record_id: "r1" });
+    const record = await getRecordTool.execute("id", {
+      app_token: "app_token",
+      table_id: "tbl",
+      record_id: "r1",
+    });
     expect(record.details.record.record_id).toBe("r1");
 
     recordCreateImpl.mockResolvedValue({ code: 0, data: { record: { record_id: "r2" } } });
-    const created = await createRecordTool.execute("id", { app_token: "app_token", table_id: "tbl", fields: { Name: "A" } });
+    const created = await createRecordTool.execute("id", {
+      app_token: "app_token",
+      table_id: "tbl",
+      fields: { Name: "A" },
+    });
     expect(created.details.record.record_id).toBe("r2");
 
     recordUpdateImpl.mockResolvedValue({ code: 0, data: { record: { record_id: "r2" } } });
-    const updated = await updateRecordTool.execute("id", { app_token: "app_token", table_id: "tbl", record_id: "r2", fields: { Name: "B" } });
+    const updated = await updateRecordTool.execute("id", {
+      app_token: "app_token",
+      table_id: "tbl",
+      record_id: "r2",
+      fields: { Name: "B" },
+    });
     expect(updated.details.record.record_id).toBe("r2");
   });
 

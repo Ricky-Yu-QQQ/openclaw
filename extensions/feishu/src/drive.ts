@@ -1,7 +1,7 @@
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
-import { createFeishuClient } from "./client.js";
-import type { FeishuConfig } from "./types.js";
 import type * as Lark from "@larksuiteoapi/node-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import type { FeishuConfig } from "./types.js";
+import { createFeishuClient } from "./client.js";
 import { FeishuDriveSchema, type FeishuDriveParams } from "./drive-schema.js";
 import { resolveToolsConfig } from "./tools-config.js";
 
@@ -102,16 +102,19 @@ async function createFolder(client: Lark.Client, name: string, folderToken?: str
   };
 }
 
-async function moveFile(
-  client: Lark.Client,
-  fileToken: string,
-  type: string,
-  folderToken: string,
-) {
+async function moveFile(client: Lark.Client, fileToken: string, type: string, folderToken: string) {
   const res = await client.drive.file.move({
     path: { file_token: fileToken },
     data: {
-      type: type as "doc" | "docx" | "sheet" | "bitable" | "folder" | "file" | "mindnote" | "slides",
+      type: type as
+        | "doc"
+        | "docx"
+        | "sheet"
+        | "bitable"
+        | "folder"
+        | "file"
+        | "mindnote"
+        | "slides",
       folder_token: folderToken,
     },
   });

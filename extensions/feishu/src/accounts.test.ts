@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import type { ClawdbotConfig } from "openclaw/plugin-sdk";
 import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk";
+import { describe, expect, it } from "vitest";
 import {
   listEnabledFeishuAccounts,
   listFeishuAccountIds,
@@ -7,7 +8,6 @@ import {
   resolveFeishuAccount,
   resolveFeishuCredentials,
 } from "./accounts.js";
-import type { ClawdbotConfig } from "openclaw/plugin-sdk";
 
 const baseCfg: ClawdbotConfig = { channels: {} };
 

@@ -1,12 +1,14 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const wsStart = vi.fn();
 const dispatcherRegister = vi.fn();
 
 vi.mock("./client.js", () => ({
   createFeishuWSClient: vi.fn(() => ({ start: (...args: any[]) => wsStart(...args) })),
-  createEventDispatcher: vi.fn(() => ({ register: (...args: any[]) => dispatcherRegister(...args) })),
+  createEventDispatcher: vi.fn(() => ({
+    register: (...args: any[]) => dispatcherRegister(...args),
+  })),
 }));
 
 vi.mock("./probe.js", () => ({
@@ -49,7 +51,11 @@ describe("feishu monitor", () => {
     const abort = new AbortController();
     abort.abort();
 
-    await monitorFeishuProvider({ config: cfg, abortSignal: abort.signal, runtime: { log: vi.fn(), error: vi.fn() } as any });
+    await monitorFeishuProvider({
+      config: cfg,
+      abortSignal: abort.signal,
+      runtime: { log: vi.fn(), error: vi.fn() } as any,
+    });
     expect(dispatcherRegister).toHaveBeenCalled();
   });
 

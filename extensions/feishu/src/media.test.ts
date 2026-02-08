@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import fs from "fs";
-import path from "path";
-import os from "os";
 import type { ClawdbotConfig } from "openclaw/plugin-sdk";
+import fs from "fs";
+import os from "os";
+import path from "path";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { loadWebMedia } = vi.hoisted(() => ({ loadWebMedia: vi.fn() }));
 vi.mock("openclaw/plugin-sdk", async (importOriginal) => {
@@ -230,19 +230,40 @@ describe("feishu media", () => {
     fs.writeFileSync(imgPath, Buffer.from("img"));
     fs.writeFileSync(filePath, Buffer.from("file"));
 
-    const res1 = await sendMediaFeishu({ cfg, to: "ou_1", mediaBuffer: Buffer.from("img"), fileName: "img.png" });
+    const res1 = await sendMediaFeishu({
+      cfg,
+      to: "ou_1",
+      mediaBuffer: Buffer.from("img"),
+      fileName: "img.png",
+    });
     expect(res1.messageId).toBe("m1");
 
-    loadWebMedia.mockResolvedValueOnce({ buffer: Buffer.from("img"), kind: "image", fileName: "img.png" });
+    loadWebMedia.mockResolvedValueOnce({
+      buffer: Buffer.from("img"),
+      kind: "image",
+      fileName: "img.png",
+    });
     const res2 = await sendMediaFeishu({ cfg: localCfg, to: "ou_1", mediaUrl: imgPath });
     expect(res2.messageId).toBe("m1");
 
-    loadWebMedia.mockResolvedValueOnce({ buffer: Buffer.from("file"), kind: "document", fileName: "doc.pdf" });
+    loadWebMedia.mockResolvedValueOnce({
+      buffer: Buffer.from("file"),
+      kind: "document",
+      fileName: "doc.pdf",
+    });
     const res3 = await sendMediaFeishu({ cfg: localCfg, to: "ou_1", mediaUrl: filePath });
     expect(res3.messageId).toBe("m1");
 
-    loadWebMedia.mockResolvedValueOnce({ buffer: Buffer.from("file"), kind: "document", fileName: "doc.pdf" });
-    const res4 = await sendMediaFeishu({ cfg, to: "ou_1", mediaUrl: "https://example.com/doc.pdf" });
+    loadWebMedia.mockResolvedValueOnce({
+      buffer: Buffer.from("file"),
+      kind: "document",
+      fileName: "doc.pdf",
+    });
+    const res4 = await sendMediaFeishu({
+      cfg,
+      to: "ou_1",
+      mediaUrl: "https://example.com/doc.pdf",
+    });
     expect(res4.messageId).toBe("m1");
   });
 
