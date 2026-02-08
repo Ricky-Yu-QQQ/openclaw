@@ -54,22 +54,22 @@ openclaw plugins update feishu
 
 **Read-only** (minimum required):
 
-| Permission               | Tool             | Description                                    |
-| ------------------------ | ---------------- | ---------------------------------------------- |
-| `docx:document:readonly` | `feishu_doc`     | Read documents                                 |
-| `drive:drive:readonly`   | `feishu_drive`   | List folders, get file info                    |
-| `wiki:wiki:readonly`     | `feishu_wiki`    | List spaces, list nodes, get node info, search |
-| `bitable:app:readonly`   | `feishu_bitable` | Read bitable records and fields                |
+| Permission               | Tool             | Description                                     |
+| ------------------------ | ---------------- | ----------------------------------------------- |
+| `docx:document:readonly` | `feishu_doc`     | Read documents                                  |
+| `drive:drive:readonly`   | `feishu_drive`   | List folders, get file info                     |
+| `wiki:wiki:readonly`     | `feishu_wiki`    | List spaces, list nodes, get node info, search  |
+| `bitable:app:readonly`   | `feishu_bitable` | Read bitable tables, fields, views, and records |
 
 **Read-write** (optional, for create/edit/delete operations):
 
-| Permission                    | Tool                         | Description                                                   |
-| ----------------------------- | ---------------------------- | ------------------------------------------------------------- |
-| `docx:document`               | `feishu_doc`                 | Create/edit documents                                         |
-| `docx:document.block:convert` | `feishu_doc`                 | Markdown to blocks conversion (required for write/append)     |
-| `drive:drive`                 | `feishu_doc`, `feishu_drive` | Upload images to documents, create folders, move/delete files |
-| `wiki:wiki`                   | `feishu_wiki`                | Create/move/rename wiki nodes                                 |
-| `bitable:app`                 | `feishu_bitable`             | Create/update bitable records                                 |
+| Permission                    | Tool                         | Description                                                      |
+| ----------------------------- | ---------------------------- | ---------------------------------------------------------------- |
+| `docx:document`               | `feishu_doc`                 | Create/edit documents                                            |
+| `docx:document.block:convert` | `feishu_doc`                 | Markdown to blocks conversion (required for write/append)        |
+| `drive:drive`                 | `feishu_doc`, `feishu_drive` | Upload images to documents, create folders, move/delete files    |
+| `wiki:wiki`                   | `feishu_wiki`                | Create/move/rename wiki nodes                                    |
+| `bitable:app`                 | `feishu_bitable`             | Manage bitable tables, fields, views, and records (single/batch) |
 
 #### Drive Access ⚠️
 
@@ -181,7 +181,7 @@ channels:
 - **Document tools**: Read, create, and write Feishu documents with markdown (tables not supported due to API limitations)
 - **Wiki tools**: Navigate knowledge bases, list spaces, get node details, search, create/move/rename nodes
 - **Drive tools**: List folders, get file info, create folders, move/delete files
-- **Bitable tools**: Read/write bitable (多维表格) records, supports both `/base/` and `/wiki/` URLs
+- **Bitable tools**: Structured bitable (多维表格) management for tables, fields, views, records (single + batch), and search; supports both `/base/` and `/wiki/` URLs
 - **Urgent tools**: Trigger message urgent notifications (app/SMS/phone)
   - If your message @mentions users, the bot reply is marked urgent for those users (app).
   - Keyword command (no LLM): send `加急消息 <内容>` with @mentions to trigger urgent reply immediately.
@@ -293,17 +293,17 @@ openclaw plugins update feishu
 | `docx:document:readonly` | `feishu_doc`     | 读取文档                               |
 | `drive:drive:readonly`   | `feishu_drive`   | 列出文件夹、获取文件信息               |
 | `wiki:wiki:readonly`     | `feishu_wiki`    | 列出空间、列出节点、获取节点详情、搜索 |
-| `bitable:app:readonly`   | `feishu_bitable` | 读取多维表格记录和字段                 |
+| `bitable:app:readonly`   | `feishu_bitable` | 读取多维表格的数据表、字段、视图和记录 |
 
 **读写权限**（可选，用于创建/编辑/删除操作）：
 
-| 权限                          | 工具                         | 说明                                      |
-| ----------------------------- | ---------------------------- | ----------------------------------------- |
-| `docx:document`               | `feishu_doc`                 | 创建/编辑文档                             |
-| `docx:document.block:convert` | `feishu_doc`                 | Markdown 转 blocks（write/append 必需）   |
-| `drive:drive`                 | `feishu_doc`, `feishu_drive` | 上传图片到文档、创建文件夹、移动/删除文件 |
-| `wiki:wiki`                   | `feishu_wiki`                | 创建/移动/重命名知识库节点                |
-| `bitable:app`                 | `feishu_bitable`             | 创建/更新多维表格记录                     |
+| 权限                          | 工具                         | 说明                                                |
+| ----------------------------- | ---------------------------- | --------------------------------------------------- |
+| `docx:document`               | `feishu_doc`                 | 创建/编辑文档                                       |
+| `docx:document.block:convert` | `feishu_doc`                 | Markdown 转 blocks（write/append 必需）             |
+| `drive:drive`                 | `feishu_doc`, `feishu_drive` | 上传图片到文档、创建文件夹、移动/删除文件           |
+| `wiki:wiki`                   | `feishu_wiki`                | 创建/移动/重命名知识库节点                          |
+| `bitable:app`                 | `feishu_bitable`             | 管理多维表格的数据表、字段、视图和记录（单条/批量） |
 
 #### 云空间访问权限 ⚠️
 
@@ -415,7 +415,7 @@ channels:
 - **文档工具**：读取、创建、用 Markdown 写入飞书文档（表格因 API 限制不支持）
 - **知识库工具**：浏览知识库、列出空间、获取节点详情、搜索、创建/移动/重命名节点
 - **云空间工具**：列出文件夹、获取文件信息、创建文件夹、移动/删除文件
-- **多维表格工具**：读写多维表格记录，支持 `/base/` 和 `/wiki/` 两种链接格式
+- **多维表格工具**：结构化管理多维表格的数据表、字段、视图、记录（单条 + 批量）和搜索，支持 `/base/` 和 `/wiki/` 两种链接格式
 - **加急工具**：触发消息加急通知（应用内/短信/电话）
   - 若消息里 @ 提到某人，机器人回复会对这些人触发应用内加急提醒。
   - 关键字命令（不经过 LLM）：发送 `加急消息 <内容>` 并 @ 人，可直接触发加急回复。

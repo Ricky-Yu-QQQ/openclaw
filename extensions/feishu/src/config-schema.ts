@@ -63,6 +63,7 @@ const FeishuToolsConfigSchema = z
     doc: z.boolean().optional(), // Document operations (default: true)
     wiki: z.boolean().optional(), // Knowledge base operations (default: true, requires doc)
     drive: z.boolean().optional(), // Cloud storage operations (default: true)
+    bitable: z.boolean().optional(), // Bitable operations (default: true)
     perm: z.boolean().optional(), // Permission management (default: false, sensitive)
     scopes: z.boolean().optional(), // App scopes diagnostic (default: true)
     urgent: z.boolean().optional(), // Message urgent notifications (default: true)

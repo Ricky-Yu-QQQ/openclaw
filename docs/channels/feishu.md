@@ -80,7 +80,7 @@ Tool permissions, read-write optional:
 - `docx:document` and `docx:document.block:convert` for write and append
 - `drive:drive` for uploads and file management
 - `wiki:wiki` for create and rename
-- `bitable:app` for write operations
+- `bitable:app` for bitable table/field/view/record management operations
 
 ## Agent tools
 
@@ -88,7 +88,7 @@ Tool permissions, read-write optional:
 - `feishu_doc`: docs read, write, append, create, block operations.
 - `feishu_wiki`: list spaces, list nodes, search, create or move nodes.
 - `feishu_drive`: list folders, get file info, create folders, move or delete files.
-- `feishu_bitable`: read and write bitable records.
+- `feishu_bitable`: structured bitable operations for tables, fields, views, records (single and batch), and record search.
 - `feishu_perm`: manage permissions and sharing (disabled by default).
 - `feishu_app_scopes`: list current app permission scopes.
 - `feishu_urgent`: trigger message urgent notifications (app/SMS/phone).
@@ -127,6 +127,7 @@ channels:
       doc: true
       wiki: true
       drive: true
+      bitable: true
       perm: false
       scopes: true
       urgent: true

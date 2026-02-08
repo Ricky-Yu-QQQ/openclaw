@@ -7,9 +7,10 @@ describe("tools-config", () => {
   });
 
   it("overrides defaults with provided values", () => {
-    expect(resolveToolsConfig({ doc: false, perm: true })).toEqual({
+    expect(resolveToolsConfig({ doc: false, bitable: false, perm: true })).toEqual({
       ...DEFAULT_TOOLS_CONFIG,
       doc: false,
+      bitable: false,
       perm: true,
     });
   });

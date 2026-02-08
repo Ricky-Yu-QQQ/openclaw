@@ -58,6 +58,7 @@ export type FeishuToolsConfig = {
   doc?: boolean;
   wiki?: boolean;
   drive?: boolean;
+  bitable?: boolean;
   perm?: boolean;
   scopes?: boolean;
   urgent?: boolean;

@@ -23,4 +23,14 @@ describe("FeishuConfigSchema", () => {
 
     expect(parsed.allowFrom).toEqual(["*"]);
   });
+
+  it("supports bitable tool toggle", () => {
+    const parsed = FeishuConfigSchema.parse({
+      tools: {
+        bitable: false,
+      },
+    });
+
+    expect(parsed.tools?.bitable).toBe(false);
+  });
 });
