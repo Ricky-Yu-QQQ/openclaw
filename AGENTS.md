@@ -28,6 +28,14 @@
 - README (GitHub): keep absolute docs URLs (`https://docs.openclaw.ai/...`) so links work on GitHub.
 - Docs content must be generic: no personal device names/hostnames/paths; use placeholders like `user@gateway-host` and “gateway host”.
 
+## Docs i18n (zh-CN)
+
+- `docs/zh-CN/**` is generated; do not edit unless the user explicitly asks.
+- Pipeline: update English docs → adjust glossary (`docs/.i18n/glossary.zh-CN.json`) → run `scripts/docs-i18n` → apply targeted fixes only if instructed.
+- Translation memory: `docs/.i18n/zh-CN.tm.jsonl` (generated).
+- See `docs/.i18n/README.md`.
+- The pipeline can be slow/inefficient; if it’s dragging, ping @jospalmbier on Discord instead of hacking around it.
+
 ## exe.dev VM ops (general)
 
 - Access: stable path is `ssh exe.dev` then `ssh vm-name` (assume SSH key already set).
@@ -50,6 +58,7 @@
 - Node remains supported for running built output (`dist/*`) and production installs.
 - Mac packaging (dev): `scripts/package-mac-app.sh` defaults to current arch. Release checklist: `docs/platforms/mac/release.md`.
 - Type-check/build: `pnpm build`
+- TypeScript checks: `pnpm tsgo`
 - Lint/format: `pnpm check`
 - Tests: `pnpm test` (vitest); coverage: `pnpm test:coverage`
 
@@ -101,20 +110,22 @@
 ## Model Selection
 
 gpt-5.2 (Primary model for all tasks):
+
 - Main development work
 - Code generation and pair programming
 - Complex coding tasks
 - Architectural decisions
 - Research and analysis tasks
-Note: Codex CLI uses gpt-5.2 as the unified model for all operations.
+  Note: Codex CLI uses gpt-5.2 as the unified model for all operations.
 
 ## Context Window Management
 
 Avoid last 20% of context window for:
+
 - Large-scale refactoring
 - Feature implementation spanning multiple files
 - Debugging complex interactions
-Lower context sensitivity tasks:
+  Lower context sensitivity tasks:
 - Single-file edits
 - Independent utility creation
 - Documentation updates
@@ -123,6 +134,7 @@ Lower context sensitivity tasks:
 ## Deep Reasoning
 
 For complex tasks:
+
 1. Use detailed planning before implementation
 2. Break down complex problems into smaller steps
 3. Verify assumptions before proceeding
@@ -131,6 +143,7 @@ For complex tasks:
 ## Build Troubleshooting
 
 If build fails:
+
 1. Analyze error messages carefully
 2. Fix incrementally
 3. Verify after each fix
@@ -142,13 +155,13 @@ This project supports Codex multi-agents for parallel task execution:
 
 ```ts
 // Example: Parallel code review
-const security = spawn_agent("Security review of auth.ts", "worker")
-const performance = spawn_agent("Performance review of queries.ts", "worker")
+const security = spawn_agent("Security review of auth.ts", "worker");
+const performance = spawn_agent("Performance review of queries.ts", "worker");
 
-wait([security.agent_id, performance.agent_id])
+wait([security.agent_id, performance.agent_id]);
 
-close_agent(security.agent_id)
-close_agent(performance.agent_id)
+close_agent(security.agent_id);
+close_agent(performance.agent_id);
 ```
 
 Enable in `~/.codex/config.toml`:
@@ -164,11 +177,12 @@ collab = true
 - Unit tests for all functions
 - Integration tests for APIs
 - E2E tests for critical flows
-Use `tdd-workflow` skill for TDD guidance.
+  Use `tdd-workflow` skill for TDD guidance.
 
 ## Security
 
 Use `security-checklist` skill before commits:
+
 - No hardcoded secrets
 - Input validation on all endpoints
 - SQL queries parameterized
@@ -178,6 +192,7 @@ Use `security-checklist` skill before commits:
 ## Code Quality
 
 Use `code-review-checklist` skill after writing code:
+
 - Functions < 50 lines
 - Files < 800 lines
 - No deep nesting (< 4 levels)
@@ -191,6 +206,8 @@ Use `code-review-checklist` skill after writing code:
 - Group related changes; avoid bundling unrelated refactors.
 - Changelog workflow: keep latest released version at top (no `Unreleased`); after publishing, bump version and start a new top section.
 - PRs should summarize scope, note testing performed, and mention any user-facing changes or new flags.
+- Read this when submitting a PR: `docs/help/submitting-a-pr.md` ([Submitting a PR](https://docs.openclaw.ai/help/submitting-a-pr))
+- Read this when submitting an issue: `docs/help/submitting-an-issue.md` ([Submitting an Issue](https://docs.openclaw.ai/help/submitting-an-issue))
 - PR review flow: when given a PR link, review via `gh pr view`/`gh pr diff` and do **not** change branches.
 - PR review calls: prefer a single `gh pr view --json ...` to batch metadata/comments; run `gh pr diff` only when needed.
 - Before starting a review when a GH Issue/PR is pasted: run `git pull`; if there are local changes or unpushed commits, stop and alert the user before reviewing.
